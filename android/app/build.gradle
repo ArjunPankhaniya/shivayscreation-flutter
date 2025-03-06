@@ -1,0 +1,153 @@
+//plugins {
+//    id "com.android.application"
+//    id 'org.jetbrains.kotlin.android'
+//    id "kotlin-android"
+//    id "dev.flutter.flutter-gradle-plugin"
+//    id "com.google.gms.google-services"  // Apply Google services plugin
+//
+//}
+//
+//android {
+//    namespace = "com.shivayscreation"
+//    compileSdk = flutter.compileSdkVersion
+//    ndkVersion = flutter.ndkVersion
+//
+//    compileOptions {
+//        sourceCompatibility = JavaVersion.VERSION_1_8
+//        targetCompatibility = JavaVersion.VERSION_1_8
+//    }
+//
+//    kotlinOptions {
+//        jvmTarget = JavaVersion.VERSION_1_8
+//    }
+//
+//    defaultConfig {
+//        applicationId = "com.shivayscreation"
+//        minSdk = 23
+//        targetSdk = flutter.targetSdkVersion
+//        versionCode = flutter.versionCode
+//        versionName = flutter.versionName
+//        multiDexEnabled true
+//    }
+//
+//    buildTypes {
+//        release {
+//            // Configure signing for release builds
+//            signingConfig signingConfigs.debug
+//        }
+//        debug {
+//            minifyEnabled false
+//            shrinkResources false
+//        }
+//    }
+//}
+//ext.kotlin_version = '1.9.22'
+//dependencies {
+//    // Firebase BoM (manages all Firebase library versions)
+//    implementation platform('com.google.firebase:firebase-bom:33.7.0')
+//
+//    // Firebase libraries (versions determined by BoM)
+//    implementation 'com.google.firebase:firebase-analytics'
+//    implementation 'com.google.firebase:firebase-messaging'
+//    implementation 'com.google.firebase:firebase-auth'
+//    implementation 'com.google.firebase:firebase-firestore'
+//
+//    implementation 'com.google.android.gms:play-services-auth:21.3.0'
+//    implementation 'com.google.android.gms:play-services-base:18.5.0'
+//
+//    implementation 'com.razorpay:checkout:1.6.41' // Example version, use the latest stable version
+//
+//    //implementation 'com.google.firebase:firebase-appcheck-debug:18.0.0'
+//    //implementation 'com.google.firebase:firebase-appcheck-debug-testing:18.0.0'
+//
+//    // MultiDex support for apps with 64K+ methods
+//    implementation 'androidx.multidex:multidex:2.0.1'
+//
+//    // AndroidX libraries (recommended over old support libraries)
+//    implementation 'androidx.appcompat:appcompat:1.7.0'
+//    implementation 'androidx.core:core-ktx:1.15.0'
+//    implementation "org.jetbrains.kotlin:kotlin-stdlib: 1.9.22"
+//}
+//
+//flutter {
+//    source = "../.."
+//}
+//
+//apply plugin: 'com.google.gms.google-services'
+//apply plugin: 'kotlin-android'
+//
+//
+plugins {
+    id "com.android.application"
+    id "org.jetbrains.kotlin.android"
+    id "dev.flutter.flutter-gradle-plugin"
+    id "com.google.gms.google-services" // Google services plugin
+}
+
+android {
+    namespace = "com.shivayscreation"
+    compileSdk = flutter.compileSdkVersion
+    ndkVersion = flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_1_8
+    }
+
+    defaultConfig {
+        applicationId = "com.shivayscreation"
+        minSdk = 23
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+        multiDexEnabled true
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            // TODO: Configure signing for production release
+            // signingConfig signingConfigs.release
+        }
+        debug {
+            minifyEnabled false
+            shrinkResources false
+        }
+    }
+}
+
+ext.kotlin_version = '1.9.22'
+
+dependencies {
+    // Firebase BoM (manages all Firebase library versions)
+    implementation platform('com.google.firebase:firebase-bom:33.10.0')
+
+    // Firebase libraries
+    implementation 'com.google.firebase:firebase-analytics'
+    implementation 'com.google.firebase:firebase-messaging'
+    implementation 'com.google.firebase:firebase-auth'
+    implementation 'com.google.firebase:firebase-firestore'
+
+    implementation 'com.google.android.gms:play-services-auth:21.3.0'
+    implementation 'com.google.android.gms:play-services-base:18.5.0'
+
+    implementation 'com.razorpay:checkout:1.6.41'
+
+    // MultiDex support
+    implementation 'androidx.multidex:multidex:2.0.1'
+
+    // AndroidX libraries
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.core:core-ktx:1.15.0'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:1.8.0" // Fixed spacing issue
+}
+
+flutter {
+    source = "../.."
+}
+apply plugin: 'com.google.gms.google-services'
