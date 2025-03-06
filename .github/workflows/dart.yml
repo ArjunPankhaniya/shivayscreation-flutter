@@ -20,7 +20,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.x' # Apne Flutter version ke hisaab se change karein
+          flutter-version: '3.7.0' 
 
       - name: Install Dependencies
         run: flutter pub get
