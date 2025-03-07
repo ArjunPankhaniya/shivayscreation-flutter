@@ -1,20 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'cart_screen.dart';
 import 'products_screen.dart';
 
 class CategoriesScreen extends StatefulWidget {
-  final List<Map<String, dynamic>> cartItems;
-  final Function(Map<String, dynamic>) onAddToCart;
-  final Function(List<Map<String, dynamic>>) onCartUpdated;
-
-  const CategoriesScreen({
-    super.key,
-    required this.cartItems,
-    required this.onAddToCart,
-    required this.onCartUpdated,
-  });
+  const CategoriesScreen({super.key});
 
   @override
   _CategoriesScreenState createState() => _CategoriesScreenState();
@@ -31,7 +21,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     _fetchCategories();
   }
 
-  // Fetch categories from Firestore in real-time
+  /// Fetch categories from Firestore in real-time
   Future<void> _fetchCategories() async {
     setState(() {
       isLoadingCategories = true;
@@ -41,9 +31,9 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
       _firestore.collection('categories').snapshots().listen((snapshot) {
         if (mounted) {
           setState(() {
-            categories = snapshot.docs
-                .map((doc) => doc.data() as Map<String, dynamic>)
-                .toList();
+            categories = snapshot.docs.map((doc) {
+              return Map<String, dynamic>.from(doc.data());
+            }).toList();
           });
         }
       });
@@ -58,28 +48,14 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     }
   }
 
-
-  // Show SnackBar for error messages with retry option
+  /// Show SnackBar for error messages with retry option
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
         action: SnackBarAction(
           label: 'Retry',
-          onPressed: _fetchCategories, // Retry fetching categories
-        ),
-      ),
-    );
-  }
-
-  // Navigate to CartScreen
-  void _goToCartScreen() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CartScreen(
-          cartItems: widget.cartItems,
-          onCartUpdated: widget.onCartUpdated,
+          onPressed: _fetchCategories,
         ),
       ),
     );
@@ -95,16 +71,9 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         ),
         backgroundColor: Colors.teal,
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.shopping_cart),
-            onPressed: _goToCartScreen, // Navigate to CartScreen
-          ),
-        ],
       ),
       body: isLoadingCategories
-          ? const Center(
-          child: CircularProgressIndicator()) // Show loading spinner
+          ? const Center(child: CircularProgressIndicator())
           : categories.isEmpty
           ? Center(
         child: Column(
@@ -121,7 +90,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
             ),
           ],
         ),
-      ) // Show message if no categories exist
+      )
           : GridView.builder(
         padding: const EdgeInsets.all(10),
         itemCount: categories.length,
@@ -134,8 +103,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         itemBuilder: (context, index) {
           final category = categories[index];
           final categoryName = category['name'] ?? 'Unnamed Category';
-          final categoryImageUrl = category['imageUrl'] ??
-              'assets/images/placeholder.png';
+          final categoryImageUrl = category['imageUrl']?.toString() ?? 'assets/images/placeholder.png';
 
           return InkWell(
             onTap: () {
@@ -143,11 +111,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => ProductsScreen(
-                    category: categoryName,
-                    onAddToCart: widget.onAddToCart,
-                    onCartUpdated: widget.onCartUpdated,
-                  ),
+                  builder: (context) => ProductsScreen(category: categoryName),
                 ),
               );
             },
@@ -161,19 +125,15 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // CachedNetworkImage for category image
                     CachedNetworkImage(
                       imageUrl: categoryImageUrl,
                       height: 40,
                       width: 40,
                       fit: BoxFit.cover,
-                      placeholder: (context, url) =>
-                      const CircularProgressIndicator(),
-                      errorWidget: (context, url, error) =>
-                      const Icon(Icons.error),
+                      placeholder: (context, url) => const CircularProgressIndicator(),
+                      errorWidget: (context, url, error) => const Icon(Icons.image_not_supported),
                     ),
                     const SizedBox(height: 10),
-                    // Display category name
                     Text(
                       categoryName,
                       textAlign: TextAlign.center,

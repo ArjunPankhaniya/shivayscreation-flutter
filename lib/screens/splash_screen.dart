@@ -28,9 +28,11 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     _controller.forward();
 
-    // Navigate to the next screen after a delay
+    // ✅ Ensure widget is still mounted before navigation
     Future.delayed(const Duration(seconds: 3), () {
-      Navigator.pushReplacementNamed(context, '/home');
+      if (mounted) {  // ✅ FIX: Check if widget is still active before navigating
+        Navigator.pushReplacementNamed(context, '/home');
+      }
     });
   }
 
@@ -44,36 +46,38 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.teal, // Solid color background
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          FadeTransition(
-            opacity: _fadeAnimation,
-            child: Image.asset(
-              'assets/images/logo.png', // Ensure logo exists
-              width: 120,
-              height: 120,
-            ),
-          ),
-          const SizedBox(height: 20),
-          FadeTransition(
-            opacity: _fadeAnimation,
-            child: Text(
-              "Shivay's Creation",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            FadeTransition(
+              opacity: _fadeAnimation,
+              child: Image.asset(
+                'assets/images/logo.png', // Ensure logo exists
+                width: 120,
+                height: 120,
               ),
             ),
-          ),
-          const SizedBox(height: 20),
-          SpinKitRipple(
-            color: Colors.white,
-            size: 50,
-            duration: const Duration(milliseconds: 1500),
-          ),
-        ],
+            const SizedBox(height: 20),
+            FadeTransition(
+              opacity: _fadeAnimation,
+              child: const Text(
+                "Shivay's Creation",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const SpinKitRipple(
+              color: Colors.white,
+              size: 50,
+              duration: Duration(milliseconds: 1500),
+            ),
+          ],
+        ),
       ),
     );
   }

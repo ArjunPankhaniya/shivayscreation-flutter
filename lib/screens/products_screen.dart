@@ -1,19 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
 import 'product_details_screen.dart';
+
+// Providers
+import 'package:shivayscreation/providers/cart_provider.dart';
 
 class ProductsScreen extends StatelessWidget {
   final String category;
-  final Function(Map<String, dynamic>) onAddToCart;
-  final Function(List<Map<String, dynamic>>)
-      onCartUpdated; // Added onCartUpdated function
 
-  const ProductsScreen({
-    super.key,
-    required this.category,
-    required this.onAddToCart,
-    required this.onCartUpdated, // Added onCartUpdated to constructor
-  });
+  const ProductsScreen({super.key, required this.category});
 
   @override
   Widget build(BuildContext context) {
@@ -26,15 +22,10 @@ class ProductsScreen extends StatelessWidget {
         backgroundColor: Colors.teal,
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: firestore
-            .collection('products')
-            .where('category', isEqualTo: category)
-            .snapshots(),
+        stream: firestore.collection('products').where('category', isEqualTo: category).snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -48,17 +39,14 @@ class ProductsScreen extends StatelessWidget {
 
           final products = snapshot.data!.docs;
 
-          return SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                children: [
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
+          return Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              children: [
+                Expanded( // Yeh ensure karega ke GridView pura screen space use kare
+                  child: GridView.builder(
                     padding: const EdgeInsets.all(8),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
                       crossAxisSpacing: 16,
                       mainAxisSpacing: 16,
@@ -68,11 +56,10 @@ class ProductsScreen extends StatelessWidget {
                     itemBuilder: (context, index) {
                       final product = products[index];
                       final productData = {
-                        'id': product.id, // Added the product ID
-                        'name':
-                            product['name'] ?? 'Unnamed Product', // Null safety
-                        'price': product['price'] ?? 0.0, // Null safety
-                        'image': product['image'] ?? '', // Null safety
+                        'id': product.id,
+                        'name': product['name'] ?? 'Unnamed Product',
+                        'price': product['price'] ?? 0.0,
+                        'image': product['image'] ?? '',
                         'description': product['description'] ?? '',
                         'category': product['category'] ?? '',
                       };
@@ -82,15 +69,7 @@ class ProductsScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => ProductDetailsScreen(
-                                product: productData,
-                                onAddToCart: onAddToCart,
-                                onRemoveFromCart: (removedProduct) {
-                                  // Implement your remove logic here
-                                },
-                                onCartUpdated:
-                                    onCartUpdated, // Pass the onCartUpdated function
-                              ),
+                              builder: (context) => ProductDetailsScreen(product: productData),
                             ),
                           );
                         },
@@ -99,41 +78,11 @@ class ProductsScreen extends StatelessWidget {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          shadowColor: Colors.grey.withValues(),
+                          shadowColor: Colors.grey.withAlpha((0.5 * 255).toInt()),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(16),
-                                child: Image.network(
-                                  productData['image'],
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                  height: 200,
-                                  loadingBuilder:
-                                      (context, child, loadingProgress) {
-                                    if (loadingProgress == null) {
-                                      return child;
-                                    } else {
-                                      return Center(
-                                        child: CircularProgressIndicator(
-                                          value: loadingProgress
-                                                      .expectedTotalBytes !=
-                                                  null
-                                              ? loadingProgress
-                                                      .cumulativeBytesLoaded /
-                                                  (loadingProgress
-                                                          .expectedTotalBytes ??
-                                                      1)
-                                              : null,
-                                        ),
-                                      );
-                                    }
-                                  },
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      _placeholderImage(),
-                                ),
-                              ),
+                              _buildProductImage(productData['image']),
                               Padding(
                                 padding: const EdgeInsets.all(12.0),
                                 child: Column(
@@ -158,14 +107,15 @@ class ProductsScreen extends StatelessWidget {
                                   ],
                                 ),
                               ),
+                              _buildAddToCartButton(context, productData),
                             ],
                           ),
                         ),
                       );
                     },
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           );
         },
@@ -173,12 +123,44 @@ class ProductsScreen extends StatelessWidget {
     );
   }
 
-  Widget _placeholderImage() {
-    return const Center(
-      child: Icon(
-        Icons.image_not_supported,
-        size: 100,
-        color: Colors.grey,
+  Widget _buildProductImage(String? imageUrl) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: Image.network(
+        imageUrl ?? 'assets/images/placeholder.png',
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: 200,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) {
+            return child;
+          } else {
+            return const Center(child: CircularProgressIndicator());
+          }
+        },
+        errorBuilder: (context, error, stackTrace) => const Center(
+          child: Icon(Icons.image_not_supported, size: 100, color: Colors.grey),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddToCartButton(BuildContext context, Map<String, dynamic> product) {
+    final cartProvider = Provider.of<CartProvider>(context);
+    final bool isInCart = cartProvider.cartItems.any((item) => item['id'] == product['id']);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+      child: ElevatedButton.icon(
+        onPressed: isInCart ? null : () => cartProvider.addToCart(product),
+        icon: const Icon(Icons.shopping_cart),
+        label: Text(isInCart ? 'In Cart' : 'Add to Cart'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isInCart ? Colors.grey : Colors.teal,
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          minimumSize: const Size(double.infinity, 40),
+        ),
       ),
     );
   }
