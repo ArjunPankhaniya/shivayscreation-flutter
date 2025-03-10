@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.shivayscreation">
+    package="com.shivayscreation"
+    android:versionCode="1"
+    android:versionName="1.0">
 
     <!-- Permissions for internet access -->
     <uses-permission android:name="android.permission.INTERNET" />
@@ -18,14 +20,14 @@
 
 
     <application
-        android:label="Shivays Creation"
-        android:icon="@mipmap/ic_launcher"
-        android:theme="@style/NormalTheme"
+        android:debuggable="true"
         android:enableOnBackInvokedCallback="true"
-        tools:ignore="ExtraText">
-
+        android:icon="@mipmap/ic_launcher"
+        android:label="Shivays Creation"
+        android:theme="@style/NormalTheme"
         android:usesCleartextTraffic="true"
-        android:debuggable="true">
+        tools:ignore="ExtraText,HardcodedDebugMode"
+        tools:targetApi="33">
 
         <!-- Main Activity -->
         <activity
@@ -35,6 +37,7 @@
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|screenSize|smallestScreenSize|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:windowSoftInputMode="adjustResize">
+            tools:targetApi="3"
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -45,6 +48,7 @@
         <service
             android:name=".MyFirebaseMessagingService"
             android:exported="true">
+            android:permission="android.permission.BIND_JOB_SERVICE">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>

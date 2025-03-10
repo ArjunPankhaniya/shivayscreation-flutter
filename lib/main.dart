@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Screens
 import 'package:shivayscreation/screens/cart_screen.dart';
@@ -52,11 +53,22 @@ void main() async {
   );
 }
 
-// ✅ Get Firebase Token (not installation ID)
+
 Future<void> getFirebaseToken() async {
-  String? fcmToken = await FirebaseMessaging.instance.getToken();
-  debugPrint("🔥 Firebase FCM Token: $fcmToken");
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  String? storedToken = prefs.getString("fcm_token");
+
+  if (storedToken == null) {
+    String? fcmToken = await FirebaseMessaging.instance.getToken();
+    if (fcmToken != null) {
+      await prefs.setString("fcm_token", fcmToken);
+      debugPrint("🔥 New Firebase FCM Token: $fcmToken");
+    }
+  } else {
+    debugPrint("✅ Existing Firebase FCM Token: $storedToken");
+  }
 }
+
 
 // ✅ Function to Request Notification Permission
 Future<void> requestNotificationPermissions() async {

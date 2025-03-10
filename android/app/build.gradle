@@ -88,7 +88,7 @@ dependencies {
     // AndroidX libraries
     implementation 'androidx.appcompat:appcompat:1.7.0'
     implementation 'androidx.core:core-ktx:1.15.0'
-    implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.9.0' // Updated to match the Kotlin plugin version
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib:2.1.0' // Updated to match the Kotlin plugin version
 }
 
 flutter {
