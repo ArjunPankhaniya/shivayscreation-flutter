@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'product_details_screen.dart';
+import 'categories_screen.dart';
 
 // Providers
 import 'package:shivayscreation/providers/cart_provider.dart';
@@ -15,7 +16,7 @@ class HomeContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final FirebaseFirestore firestore = FirebaseFirestore.instance;
-    final cartProvider = Provider.of<CartProvider>(context);
+    // final cartProvider = Provider.of<CartProvider>(context);
     const String placeholderImage = 'assets/images/placeholder.png';
 
     return SingleChildScrollView(
@@ -48,7 +49,16 @@ class HomeContent extends StatelessWidget {
                   final categoryData = category.data() as Map<String, dynamic>;
 
                   return GestureDetector(
-                    onTap: onNavigateToCategories, // 🔹 Switch to "Categories" tab
+                    onTap: () {
+                      String categoryId = category.id; // ✅ Correct usage
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CategoriesScreen(selectedCategoryId: categoryId),
+                        ),
+                      );
+
+                    },
                     child: Card(
                       elevation: 6,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -65,7 +75,7 @@ class HomeContent extends StatelessWidget {
                                   placeholderImage,
                                   height: 130,
                                   width: double.infinity,
-                                  fit: BoxFit.fill,
+                                  fit: BoxFit.cover,
                                 );
                               },
                             ),
@@ -94,7 +104,7 @@ class HomeContent extends StatelessWidget {
             child: Text('Products', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           ),
           StreamBuilder<QuerySnapshot>(
-            stream: firestore.collection('products').limit(10).snapshots(),
+            stream: firestore.collection('products').orderBy('name').snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
@@ -120,7 +130,11 @@ class HomeContent extends StatelessWidget {
                 ),
                 itemCount: products.length,
                 itemBuilder: (context, index) {
-                  final product = products[index].data() as Map<String, dynamic>;
+                  final productId = products[index].id; // Firestore se directly document id lo
+                  final productData = products[index].data() as Map<String, dynamic>;
+
+                  // ✅ Create a new map instead of modifying Firestore data
+                  final product = {...productData, 'id': productId};
 
                   return GestureDetector(
                     onTap: () {
@@ -139,7 +153,7 @@ class HomeContent extends StatelessWidget {
                             child: Image.network(
                               product['imageUrl'] ?? '',
                               height: 140,
-                              fit: BoxFit.contain,
+                              fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) {
                                 return Image.asset(placeholderImage, height: 130, fit: BoxFit.contain);
                               },
@@ -160,9 +174,23 @@ class HomeContent extends StatelessWidget {
                               style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
                             ),
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.add_shopping_cart),
-                            onPressed: () => cartProvider.addToCart(product),
+                          Consumer<CartProvider>(
+                            builder: (context, cartProvider, child) {
+                              final bool isInCart = cartProvider.cartItems.any((item) => item['id'] == productId);
+
+                              return ElevatedButton(
+                                onPressed: isInCart ? null : () {
+                                  cartProvider.addToCart(product);
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: isInCart ? Colors.grey : Colors.blue,
+                                ),
+                                child: Text(
+                                  isInCart ? 'In Cart' : 'Add to Cart',
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),

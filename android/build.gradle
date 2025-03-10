@@ -6,10 +6,11 @@ buildscript {
     dependencies {
         classpath 'com.google.gms:google-services:4.4.2'  // Latest stable version
         classpath 'com.android.tools.build:gradle:8.1.4'  // Ensure compatibility
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.0"
-
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.0'  // Matching Kotlin version
     }
 }
+
+ext.kotlin_version = '1.9.0'
 
 allprojects {
     repositories {
@@ -18,7 +19,7 @@ allprojects {
     }
 }
 
-// Set a unified build directory
+// Use dependencyResolutionManagement in settings.gradle (Recommended)
 rootProject.buildDir = "../build"
 
 subprojects {

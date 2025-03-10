@@ -86,32 +86,36 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   }
 
   Widget _buildProductImage(String? imageUrl) {
+    const String placeholderImage = 'assets/images/placeholder.png';
+
     return AspectRatio(
       aspectRatio: 1,
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          color: Colors.grey.shade200,
+          color: Colors.grey.shade200, // Background color
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(12),
           child: imageUrl != null && imageUrl.isNotEmpty
-              ? Image.network(
-            imageUrl,
+              ? FadeInImage.assetNetwork(
+            placeholder: placeholderImage,
+            image: imageUrl,
             fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => Image.asset(
-              'assets/images/placeholder.png',
+            imageErrorBuilder: (context, error, stackTrace) => Image.asset(
+              placeholderImage,
               fit: BoxFit.cover,
             ),
           )
               : Image.asset(
-            'assets/images/placeholder.png',
+            placeholderImage,
             fit: BoxFit.cover,
           ),
         ),
       ),
     );
   }
+
 
   Widget _buildDescription(String description) {
     return Container(

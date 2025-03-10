@@ -21,22 +21,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final ImagePicker _picker = ImagePicker();
 
   // Fetch user data from Firestore
-  Future<Map<String, dynamic>> _fetchUserData() async {
+  Future<Map<String, dynamic>?> _fetchUserData() async {
     try {
       User? user = _auth.currentUser;
-      if (user != null) {
-        DocumentSnapshot snapshot =
-            await _firestore.collection('users').doc(user.uid).get();
-        if (snapshot.exists) {
-          return snapshot.data() as Map<String, dynamic>;
-        } else {
-          throw 'User data not found in Firestore.';
-        }
+      if (user == null) {
+        return null;
+      }
+
+      DocumentSnapshot snapshot =
+      await _firestore.collection('users').doc(user.uid).get();
+
+      if (snapshot.exists) {
+        return snapshot.data() as Map<String, dynamic>;
       } else {
-        throw 'User not logged in.';
+        return null;
       }
     } catch (e) {
-      throw 'Error fetching user data: $e';
+      debugPrint('Error fetching user data: $e');
+      return null;
     }
   }
 
@@ -53,17 +55,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // Navigate to edit profile screen
-  void _navigateToEditProfile(Map<String, dynamic> userData) async {
+  void _navigateToEditProfile(Map<String, dynamic>? userData) async {
+    if (userData == null) return;
+
     try {
       await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => ProfileScreenUpdate(
-            userData: userData,
-          ),
+          builder: (context) => ProfileScreenUpdate(userData: userData),
         ),
       );
-      // Refresh profile details after returning from the edit screen
+      // Refresh profile details after returning from edit screen
       setState(() {});
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -72,49 +74,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // Pick an image from the gallery and upload to Firebase Storage
+  // Pick an image from gallery & upload to Firebase Storage
   Future<void> _pickImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      setState(() {
-        _profileImage = File(image.path);
-      });
-      // Upload the image to Firebase Storage
+    if (image == null) return;
+
+    setState(() {
+      _profileImage = File(image.path);
+    });
+
+    try {
+      User? user = _auth.currentUser;
+      if (user == null) return;
+
       String fileName =
-          'profile_pics/${_auth.currentUser!.uid}/${DateTime.now().millisecondsSinceEpoch}.jpg';
-      try {
-        // Upload the image to Firebase Storage
-        TaskSnapshot snapshot =
-            await _storage.ref(fileName).putFile(_profileImage!);
+          'profile_pics/${user.uid}/${DateTime.now().millisecondsSinceEpoch}.jpg';
 
-        // Get the URL of the uploaded image
-        String downloadUrl = await snapshot.ref.getDownloadURL();
+      TaskSnapshot snapshot = await _storage.ref(fileName).putFile(_profileImage!);
 
-        // Update the user's profile with the image URL in Firestore
-        await _firestore
-            .collection('users')
-            .doc(_auth.currentUser!.uid)
-            .update({
-          'profileImage': downloadUrl,
-        });
+      String downloadUrl = await snapshot.ref.getDownloadURL();
 
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Profile image updated successfully!')));
-      } catch (e) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error uploading image: $e')));
-      }
+      await _firestore.collection('users').doc(user.uid).update({
+        'profileImage': downloadUrl,
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Profile image updated successfully!')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error uploading image: $e')),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    User? user = _auth.currentUser;
+
+    if (user == null) {
+      return Scaffold(
+        body: Center(child: Text('No user logged in.')),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.teal,
         title: Text('Profile', style: TextStyle(fontSize: 20)),
         centerTitle: true,
-        leading: FutureBuilder<Map<String, dynamic>>(
+        leading: FutureBuilder<Map<String, dynamic>?>(
           future: _fetchUserData(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -122,12 +131,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: CircularProgressIndicator(color: Colors.white),
               );
             }
-            if (snapshot.hasError || !snapshot.hasData) {
-              return Container(); // Show nothing if there is an error or no data
+            if (!snapshot.hasData || snapshot.data == null) {
+              return Container(); // Show nothing if there's an error
             }
             return IconButton(
               icon: Icon(Icons.edit, color: Colors.white),
-              onPressed: () => _navigateToEditProfile(snapshot.data!),
+              onPressed: () => _navigateToEditProfile(snapshot.data),
             );
           },
         ),
@@ -139,22 +148,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
       body: StreamBuilder<DocumentSnapshot>(
-        stream: _firestore
-            .collection('users')
-            .doc(_auth.currentUser!.uid)
-            .snapshots(),
+        stream: _firestore.collection('users').doc(user.uid).snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
           }
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-          if (!snapshot.hasData || !snapshot.data!.exists) {
+          if (snapshot.hasError || !snapshot.hasData || !snapshot.data!.exists) {
             return Center(child: Text('No user data available.'));
           }
 
           var userData = snapshot.data!.data() as Map<String, dynamic>;
+
           return Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -170,27 +174,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     GestureDetector(
-                      onTap: _pickImage, // Pick image on tap
+                      onTap: _pickImage,
                       child: CircleAvatar(
                         radius: 50,
                         backgroundColor: Colors.teal,
                         backgroundImage: _profileImage != null
                             ? FileImage(_profileImage!)
-                            : userData['profileImage'] != null
-                                ? NetworkImage(userData['profileImage'])
-                                : null,
+                            : (userData['profileImage'] != null
+                            ? NetworkImage(userData['profileImage'])
+                            : null) as ImageProvider?,
                         child: _profileImage == null &&
-                                userData['profileImage'] == null
+                            (userData['profileImage'] == null ||
+                                userData['profileImage'] == "")
                             ? Text(
-                                userData['name']
-                                        ?.substring(0, 1)
-                                        .toUpperCase() ??
-                                    'U',
-                                style: TextStyle(
-                                    fontSize: 40,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold),
-                              )
+                          userData['name']?.substring(0, 1).toUpperCase() ?? 'U',
+                          style: TextStyle(
+                              fontSize: 40,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold),
+                        )
                             : null,
                       ),
                     ),
@@ -215,8 +217,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Divider(),
                     ListTile(
                       leading: Icon(Icons.location_on, color: Colors.teal),
-                      title:
-                          Text(userData['address'] ?? 'Address not available'),
+                      title: Text(userData['address'] ?? 'Address not available'),
                     ),
                     Divider(),
                     ElevatedButton.icon(

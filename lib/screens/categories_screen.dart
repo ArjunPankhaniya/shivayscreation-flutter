@@ -4,24 +4,31 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'products_screen.dart';
 
 class CategoriesScreen extends StatefulWidget {
-  const CategoriesScreen({super.key});
+  final String? selectedCategoryId; // ✅ Receive selected category ID
+  const CategoriesScreen({this.selectedCategoryId, super.key});
 
   @override
   _CategoriesScreenState createState() => _CategoriesScreenState();
 }
 
 class _CategoriesScreenState extends State<CategoriesScreen> {
+  String? selectedCategoryId;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   List<Map<String, dynamic>> categories = [];
   bool isLoadingCategories = false;
 
+
   @override
   void initState() {
     super.initState();
+    selectedCategoryId = widget.selectedCategoryId; // ✅ Initialize selected category
+    //print('🔹 Selected Category ID: $selectedCategoryId'); // ✅ Debugging print
     _fetchCategories();
   }
 
-  /// Fetch categories from Firestore in real-time
+  bool hasNavigated = false; // 🆕 Prevent multiple navigation
+
+
   Future<void> _fetchCategories() async {
     setState(() {
       isLoadingCategories = true;
@@ -32,8 +39,27 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         if (mounted) {
           setState(() {
             categories = snapshot.docs.map((doc) {
-              return Map<String, dynamic>.from(doc.data());
+              return {
+                'id': doc.id,
+                ...Map<String, dynamic>.from(doc.data()),
+              };
             }).toList();
+
+            /// ✅ Agar selectedCategoryId available hai, toh navigate karo
+            if (selectedCategoryId != null) {
+              final selectedCategoryIndex =
+              categories.indexWhere((cat) => cat['id'] == selectedCategoryId);
+              if (selectedCategoryIndex != -1) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ProductsScreen(
+                      category: categories[selectedCategoryIndex]['name'],
+                    ),
+                  ),
+                );
+              }
+            }
           });
         }
       });
@@ -47,6 +73,9 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
       }
     }
   }
+
+
+
 
   /// Show SnackBar for error messages with retry option
   void _showErrorSnackBar(String message) {
@@ -126,13 +155,14 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     CachedNetworkImage(
-                      imageUrl: categoryImageUrl,
+                      imageUrl: categoryImageUrl.isNotEmpty ? categoryImageUrl : '',
                       height: 40,
                       width: 40,
                       fit: BoxFit.cover,
                       placeholder: (context, url) => const CircularProgressIndicator(),
-                      errorWidget: (context, url, error) => const Icon(Icons.image_not_supported),
-                    ),
+                      errorWidget: (context, url, error) => Image.asset('assets/images/placeholder.png', height: 40, width: 40),
+                    )
+                    ,
                     const SizedBox(height: 10),
                     Text(
                       categoryName,

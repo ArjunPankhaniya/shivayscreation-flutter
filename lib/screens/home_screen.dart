@@ -18,6 +18,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+
   @override
   void initState() {
     super.initState();
@@ -68,7 +69,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: const Icon(Icons.shopping_cart),
                 tooltip: 'Go to Cart',
                 onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const CartScreen()));
+                  final navigationProvider = Provider.of<NavigationProvider>(context, listen: false);
+                  navigationProvider.updateIndex(1, context); // ✅ Set index to Cart Tab
                 },
               ),
               if (cartProvider.cartItems.isNotEmpty)
