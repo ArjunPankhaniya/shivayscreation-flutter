@@ -12,22 +12,36 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  bool _isPasswordVisible = false; // Password visibility state
+  bool _isPasswordVisible = false;
   bool _isLoading = false;
 
   Future<void> _login() async {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('⚠️ Email and Password cannot be empty')),
+      );
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
+
     try {
       await _auth.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
-        password: _passwordController.text.trim(), // Ensure password is trimmed
+        password: _passwordController.text.trim(),
       );
       Navigator.pushReplacementNamed(context, '/home');
-    } catch (e) {
+    } on FirebaseAuthException catch (e) {
+      String errorMessage = "Something went wrong!";
+      if (e.code == 'user-not-found') {
+        errorMessage = '⚠️ No user found for this email.';
+      } else if (e.code == 'wrong-password') {
+        errorMessage = '⚠️ Wrong password provided.';
+      }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+        SnackBar(content: Text(errorMessage)),
       );
     } finally {
       setState(() {
@@ -64,7 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   color: Colors.teal[800],
                 ),
               ),
-              SizedBox(height: 10),
+              SizedBox(height: 15),
               Text(
                 'Login to continue',
                 style: TextStyle(
@@ -92,9 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   prefixIcon: Icon(Icons.lock, color: Colors.teal),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _isPasswordVisible
-                          ? Icons.visibility
-                          : Icons.visibility_off,
+                      _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
                       color: Colors.teal,
                     ),
                     onPressed: () {
@@ -107,8 +119,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                obscureText: !_isPasswordVisible, // Show/hide password
+                obscureText: !_isPasswordVisible, // Password show/hide
               ),
+
               SizedBox(height: 10),
               Align(
                 alignment: Alignment.centerRight,
@@ -124,20 +137,19 @@ class _LoginScreenState extends State<LoginScreen> {
               _isLoading
                   ? CircularProgressIndicator()
                   : ElevatedButton(
-                      onPressed: _login,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal,
-                        padding:
-                            EdgeInsets.symmetric(vertical: 15, horizontal: 100),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      child: Text(
-                        'Login',
-                        style: TextStyle(fontSize: 18, color: Colors.white),
-                      ),
-                    ),
+                onPressed: _login,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  padding: EdgeInsets.symmetric(vertical: 15, horizontal: 80),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: Text(
+                  'Login',
+                  style: TextStyle(fontSize: 18, color: Colors.white),
+                ),
+              ),
               SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,

@@ -22,3 +22,6 @@
 -keep class android.support.** { *; }
 -keep class androidx.** { *; }
 -dontwarn androidx.**
+
+-keep class android.content.SharedPreferences { *; }
+-keep class androidx.security.crypto.EncryptedSharedPreferences { *; }
