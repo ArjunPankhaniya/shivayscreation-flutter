@@ -5,10 +5,17 @@
     android:versionName="1.0">
 
     <!-- Permissions for internet access -->
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.READ_DEVICE_CONFIG"
         tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.CAMERA"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
@@ -27,6 +34,7 @@
         android:theme="@style/NormalTheme"
         android:usesCleartextTraffic="true"
         tools:ignore="ExtraText,HardcodedDebugMode"
+        android:requestLegacyExternalStorage="true"
         tools:targetApi="33">
 
         <!-- Main Activity -->

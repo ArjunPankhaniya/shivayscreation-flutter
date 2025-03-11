@@ -1,10 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'products_screen.dart';
 
 class CategoriesScreen extends StatefulWidget {
-  final String? selectedCategoryId; // ✅ Receive selected category ID
+  final String? selectedCategoryId;
   const CategoriesScreen({this.selectedCategoryId, super.key});
 
   @override
@@ -16,18 +17,21 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   List<Map<String, dynamic>> categories = [];
   bool isLoadingCategories = false;
-
+  bool hasNavigated = false;
+  StreamSubscription? _categorySubscription;
 
   @override
   void initState() {
     super.initState();
-    selectedCategoryId = widget.selectedCategoryId; // ✅ Initialize selected category
-    //print('🔹 Selected Category ID: $selectedCategoryId'); // ✅ Debugging print
+    selectedCategoryId = widget.selectedCategoryId;
     _fetchCategories();
   }
 
-  bool hasNavigated = false; // 🆕 Prevent multiple navigation
-
+  @override
+  void dispose() {
+    _categorySubscription?.cancel();
+    super.dispose();
+  }
 
   Future<void> _fetchCategories() async {
     setState(() {
@@ -35,34 +39,35 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     });
 
     try {
-      _firestore.collection('categories').snapshots().listen((snapshot) {
-        if (mounted) {
-          setState(() {
-            categories = snapshot.docs.map((doc) {
-              return {
-                'id': doc.id,
-                ...Map<String, dynamic>.from(doc.data()),
-              };
-            }).toList();
+      _categorySubscription =
+          _firestore.collection('categories').snapshots().listen((snapshot) {
+            if (mounted) {
+              setState(() {
+                categories = snapshot.docs.map((doc) {
+                  return {
+                    'id': doc.id,
+                    ...Map<String, dynamic>.from(doc.data()),
+                  };
+                }).toList();
 
-            /// ✅ Agar selectedCategoryId available hai, toh navigate karo
-            if (selectedCategoryId != null) {
-              final selectedCategoryIndex =
-              categories.indexWhere((cat) => cat['id'] == selectedCategoryId);
-              if (selectedCategoryIndex != -1) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ProductsScreen(
-                      category: categories[selectedCategoryIndex]['name'],
-                    ),
-                  ),
-                );
-              }
+                if (selectedCategoryId != null && !hasNavigated) {
+                  final selectedCategoryIndex =
+                  categories.indexWhere((cat) => cat['id'] == selectedCategoryId);
+                  if (selectedCategoryIndex != -1) {
+                    hasNavigated = true;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProductsScreen(
+                          category: categories[selectedCategoryIndex]['name'],
+                        ),
+                      ),
+                    );
+                  }
+                }
+              });
             }
           });
-        }
-      });
     } catch (e) {
       _showErrorSnackBar('Error fetching categories: ${e.toString()}');
     } finally {
@@ -74,10 +79,6 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     }
   }
 
-
-
-
-  /// Show SnackBar for error messages with retry option
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -131,16 +132,20 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         ),
         itemBuilder: (context, index) {
           final category = categories[index];
-          final categoryName = category['name'] ?? 'Unnamed Category';
-          final categoryImageUrl = category['imageUrl']?.toString() ?? 'assets/images/placeholder.png';
+          final categoryName =
+              category['name'] ?? 'Unnamed Category';
+          final categoryImageUrl =
+          category['imageUrl']?.toString().isNotEmpty == true
+              ? category['imageUrl']
+              : 'assets/images/placeholder.png';
 
           return InkWell(
             onTap: () {
-              // Navigate to ProductsScreen when a category is tapped
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => ProductsScreen(category: categoryName),
+                  builder: (context) =>
+                      ProductsScreen(category: categoryName),
                 ),
               );
             },
@@ -155,14 +160,16 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     CachedNetworkImage(
-                      imageUrl: categoryImageUrl.isNotEmpty ? categoryImageUrl : '',
-                      height: 40,
-                      width: 40,
+                      imageUrl: categoryImageUrl,
+                      height: 100,
+                      width: 100,
                       fit: BoxFit.cover,
-                      placeholder: (context, url) => const CircularProgressIndicator(),
-                      errorWidget: (context, url, error) => Image.asset('assets/images/placeholder.png', height: 40, width: 40),
-                    )
-                    ,
+                      placeholder: (context, url) =>
+                      const CircularProgressIndicator(),
+                      errorWidget: (context, url, error) =>
+                          Image.asset('assets/images/placeholder.png',
+                              height: 40, width: 40),
+                    ),
                     const SizedBox(height: 10),
                     Text(
                       categoryName,

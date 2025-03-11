@@ -17,6 +17,8 @@ class CartProvider extends ChangeNotifier {
         _cartItems = snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList();
         notifyListeners();
       });
+    }else {
+
     }
   }
 
@@ -26,7 +28,7 @@ class CartProvider extends ChangeNotifier {
     if (user == null) return;
 
     final cartRef = _firestore.collection('users').doc(user.uid).collection('cart');
-    final productId = product['id'] ?? product['name']; // Ensure we have a unique identifier
+    final productId = product['id'] ?? product['name'];
 
     final docRef = cartRef.doc(productId);
     final docSnapshot = await docRef.get();
@@ -34,11 +36,18 @@ class CartProvider extends ChangeNotifier {
     if (docSnapshot.exists) {
       await docRef.update({'quantity': FieldValue.increment(1)});
     } else {
-      await docRef.set({...product, 'quantity': 1}, SetOptions(merge: true));
+      await docRef.set({
+        'id': productId,
+        'name': product['name'],
+        'price': product['price'],
+        'imageUrl': product['imageUrl'], // ✅ Ensure image is stored
+        'quantity': 1,
+      }, SetOptions(merge: true));
     }
 
     fetchCart(); // Refresh UI
   }
+
 
   /// Remove item from cart and sync with Firestore
   Future<void> removeFromCart(Map<String, dynamic> product) async {

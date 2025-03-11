@@ -24,7 +24,19 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
 
     // ✅ Fetch cart once when the screen initializes
-    Future.delayed(Duration.zero, () {
+    Future.delayed(Duration(milliseconds: 300), () {
+      GestureDetector(
+        onTap: () {
+          FocusScope.of(context).unfocus();
+        },
+        child: Scaffold(
+          body: Column(
+            children: [
+              TextField(),
+            ],
+          ),
+        ),
+      );
       Provider.of<CartProvider>(context, listen: false).fetchCart();
     });
   }
@@ -66,26 +78,26 @@ class _HomeScreenState extends State<HomeScreen> {
             alignment: Alignment.center,
             children: [
               IconButton(
-                icon: const Icon(Icons.shopping_cart),
-                tooltip: 'Go to Cart',
+                icon: const Icon(Icons.person),
+                tooltip: 'Go to Profile',
                 onPressed: () {
                   final navigationProvider = Provider.of<NavigationProvider>(context, listen: false);
-                  navigationProvider.updateIndex(1, context); // ✅ Set index to Cart Tab
+                  navigationProvider.updateIndex(4, context); // ✅ Set index to Cart Tab
                 },
               ),
-              if (cartProvider.cartItems.isNotEmpty)
-                Positioned(
-                  right: 6,
-                  top: 6,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-                    child: Text(
-                      '${cartProvider.cartItems.length}',
-                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
+              // if (cartProvider.cartItems.isNotEmpty)
+              //   Positioned(
+              //     right: 6,
+              //     top: 6,
+              //     child: Container(
+              //       padding: const EdgeInsets.all(4),
+              //       decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+              //       child: Text(
+              //         '${cartProvider.cartItems.length}',
+              //         style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+              //       ),
+              //     ),
+              //   ),
             ],
           ),
         ],
@@ -93,26 +105,64 @@ class _HomeScreenState extends State<HomeScreen> {
       body: IndexedStack(
         index: navigationProvider.selectedIndex,
         children: [
-          HomeContent(onNavigateToCategories: () => _onItemTapped(4)), // ✅ Switch to Categories tab
-          const CartScreen(),
-          const ProfileScreen(),
-          const AddCategoryProductScreen(),
+          HomeContent(onNavigateToCategories: () => _onItemTapped(1)), // ✅ Switch to Categories tab
           const CategoriesScreen(),
+          const CartScreen(),
+          const AddCategoryProductScreen(),
+          const ProfileScreen(),
+
+
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: navigationProvider.selectedIndex,
-        onTap: _onItemTapped, // ✅ Fix: Call _onItemTapped properly
+        onTap: _onItemTapped,
         selectedItemColor: Colors.teal,
         unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: 'Cart'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-          BottomNavigationBarItem(icon: Icon(Icons.add_circle), label: 'Add'),
-          BottomNavigationBarItem(icon: Icon(Icons.category), label: 'Categories'),
+        items: [
+          const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          const BottomNavigationBarItem(icon: Icon(Icons.category), label: 'Categories'),
+
+          // Cart Icon with Badge
+          BottomNavigationBarItem(
+            icon: Stack(
+              children: [
+                const Icon(Icons.shopping_cart),
+                if (cartProvider.cartItems.isNotEmpty)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 18,
+                        minHeight: 18,
+                      ),
+                      child: Text(
+                        '${cartProvider.cartItems.length}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            label: 'Cart',
+          ),
+
+          const BottomNavigationBarItem(icon: Icon(Icons.add_circle), label: 'Add'),
+          const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
+
     );
   }
 }

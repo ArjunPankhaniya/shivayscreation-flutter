@@ -7,23 +7,39 @@ import 'product_details_screen.dart';
 // Providers
 import 'package:shivayscreation/providers/cart_provider.dart';
 
-class ProductsScreen extends StatelessWidget {
+class ProductsScreen extends StatefulWidget {
   final String category;
 
   const ProductsScreen({super.key, required this.category});
 
   @override
-  Widget build(BuildContext context) {
-    final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  _ProductsScreenState createState() => _ProductsScreenState();
+}
 
+class _ProductsScreenState extends State<ProductsScreen> {
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  Stream<QuerySnapshot>? productStream;
+
+  @override
+  void initState() {
+    print("currently on products screen");
+    super.initState();
+    productStream = firestore
+        .collection('products')
+        .where('category', isEqualTo: widget.category)
+        .snapshots();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(category),
+        title: Text(widget.category),
         centerTitle: true,
         backgroundColor: Colors.teal,
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: firestore.collection('products').where('category', isEqualTo: category).snapshots(),
+        stream: productStream,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -48,7 +64,7 @@ class ProductsScreen extends StatelessWidget {
                 crossAxisCount: 2,
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
-                childAspectRatio: 0.75, // ✅ Fix: Adjust height to prevent button cut
+                childAspectRatio: 0.70, // ✅ Ensures button visibility
               ),
               itemCount: products.length,
               itemBuilder: (context, index) {
@@ -57,7 +73,7 @@ class ProductsScreen extends StatelessWidget {
                   'id': product.id,
                   'name': product['name'] ?? 'Unnamed Product',
                   'price': product['price'] ?? 0.0,
-                  'image': product['image'] ?? '',
+                  'imageUrl': product['imageUrl'] ?? '',
                   'description': product['description'] ?? '',
                   'category': product['category'] ?? '',
                 };
@@ -67,7 +83,8 @@ class ProductsScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ProductDetailsScreen(product: productData),
+                        builder: (context) =>
+                            ProductDetailsScreen(product: productData),
                       ),
                     );
                   },
@@ -77,11 +94,11 @@ class ProductsScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     shadowColor: Colors.grey.withAlpha((0.5 * 255).toInt()),
-                    child: Column( // ✅ Fix: Ensure cart button is visible
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Expanded(
-                          child: _buildProductImage(productData['image']),
+                          child: _buildProductImage(productData['imageUrl']),
                         ),
                         Padding(
                           padding: const EdgeInsets.all(12.0),
@@ -108,8 +125,8 @@ class ProductsScreen extends StatelessWidget {
                             ],
                           ),
                         ),
-                        _buildAddToCartButton(context, productData), // ✅ Fix: Button now always visible
-                        const SizedBox(height: 8), // ✅ Ensure spacing at bottom
+                        _buildAddToCartButton(context, productData),
+                        const SizedBox(height: 8), // ✅ Ensures spacing at bottom
                       ],
                     ),
                   ),
@@ -122,8 +139,6 @@ class ProductsScreen extends StatelessWidget {
     );
   }
 
-
-
   Widget _buildProductImage(String? imageUrl) {
     const String placeholderImage = 'assets/images/placeholder.png';
 
@@ -133,7 +148,7 @@ class ProductsScreen extends StatelessWidget {
         width: double.infinity,
         height: 200,
         child: imageUrl != null && imageUrl.isNotEmpty
-            ? CachedNetworkImage( // ✅ Use CachedNetworkImage for network images
+            ? CachedNetworkImage(
           imageUrl: imageUrl,
           fit: BoxFit.cover,
           placeholder: (context, url) => Image.asset(
@@ -156,7 +171,8 @@ class ProductsScreen extends StatelessWidget {
 
   Widget _buildAddToCartButton(BuildContext context, Map<String, dynamic> product) {
     final cartProvider = Provider.of<CartProvider>(context);
-    final bool isInCart = cartProvider.cartItems.any((item) => item['id'] == product['id']);
+    final bool isInCart =
+    cartProvider.cartItems.any((item) => item['id'] == product['id']);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0),

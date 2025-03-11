@@ -1,10 +1,12 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
-import 'profile_screen_update.dart'; // Ensure the import is correct
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:path_provider/path_provider.dart';
+import 'profile_screen_update.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -18,84 +20,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
   File? _profileImage;
-  final ImagePicker _picker = ImagePicker();
+  bool _isUploading = false;
 
-  // Fetch user data from Firestore
-  Future<Map<String, dynamic>?> _fetchUserData() async {
-    try {
-      User? user = _auth.currentUser;
-      if (user == null) {
-        return null;
-      }
+  Future<void> _pickAndUploadImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
-      DocumentSnapshot snapshot =
-      await _firestore.collection('users').doc(user.uid).get();
-
-      if (snapshot.exists) {
-        return snapshot.data() as Map<String, dynamic>;
-      } else {
-        return null;
-      }
-    } catch (e) {
-      debugPrint('Error fetching user data: $e');
-      return null;
-    }
-  }
-
-  // Logout function
-  Future<void> _logout() async {
-    try {
-      await _auth.signOut();
-      Navigator.pushReplacementNamed(context, '/login');
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error logging out: $e')),
-      );
-    }
-  }
-
-  // Navigate to edit profile screen
-  void _navigateToEditProfile(Map<String, dynamic>? userData) async {
-    if (userData == null) return;
-
-    try {
-      await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ProfileScreenUpdate(userData: userData),
-        ),
-      );
-      // Refresh profile details after returning from edit screen
-      setState(() {});
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error navigating to edit profile: $e')),
-      );
-    }
-  }
-
-  // Pick an image from gallery & upload to Firebase Storage
-  Future<void> _pickImage() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image == null) return;
-
-    setState(() {
-      _profileImage = File(image.path);
-    });
+    setState(() => _isUploading = true);
 
     try {
+      File compressedImage = await _compressImage(File(image.path));
       User? user = _auth.currentUser;
       if (user == null) return;
 
-      String fileName =
-          'profile_pics/${user.uid}/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      String filePath = 'profile_pics/${user.uid}.webp';
+      UploadTask uploadTask = _storage.ref(filePath).putFile(compressedImage);
 
-      TaskSnapshot snapshot = await _storage.ref(fileName).putFile(_profileImage!);
-
+      TaskSnapshot snapshot = await uploadTask;
       String downloadUrl = await snapshot.ref.getDownloadURL();
 
-      await _firestore.collection('users').doc(user.uid).update({
-        'profileImage': downloadUrl,
+      await _firestore.collection('users').doc(user.uid).update({'imageUrl': downloadUrl});
+
+      setState(() {
+        _profileImage = compressedImage;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -105,13 +53,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error uploading image: $e')),
       );
+    } finally {
+      setState(() => _isUploading = false);
     }
+  }
+
+  Future<File> _compressImage(File file) async {
+    final dir = await getTemporaryDirectory();
+    final targetPath = '${dir.path}/compressed_${DateTime.now().millisecondsSinceEpoch}.webp';
+
+    final compressedFile = await FlutterImageCompress.compressAndGetFile(
+      file.absolute.path,
+      targetPath,
+      quality: 40,
+      format: CompressFormat.webp,  // 👈 WEBP format
+    );
+
+    return compressedFile != null ? File(compressedFile.path) : file;
   }
 
   @override
   Widget build(BuildContext context) {
     User? user = _auth.currentUser;
-
     if (user == null) {
       return Scaffold(
         body: Center(child: Text('No user logged in.')),
@@ -123,27 +86,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: Colors.teal,
         title: Text('Profile', style: TextStyle(fontSize: 20)),
         centerTitle: true,
-        leading: FutureBuilder<Map<String, dynamic>?>(
-          future: _fetchUserData(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(
-                child: CircularProgressIndicator(color: Colors.white),
-              );
-            }
-            if (!snapshot.hasData || snapshot.data == null) {
-              return Container(); // Show nothing if there's an error
-            }
-            return IconButton(
-              icon: Icon(Icons.edit, color: Colors.white),
-              onPressed: () => _navigateToEditProfile(snapshot.data),
-            );
-          },
-        ),
         actions: [
           IconButton(
             icon: Icon(Icons.logout, color: Colors.white),
-            onPressed: _logout,
+            onPressed: () async {
+              bool confirmLogout = await _showLogoutConfirmationDialog();
+              if (confirmLogout) {
+                await _auth.signOut();
+                Navigator.pushReplacementNamed(context, '/login');
+              }
+            },
           ),
         ],
       ),
@@ -153,7 +105,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
           }
-          if (snapshot.hasError || !snapshot.hasData || !snapshot.data!.exists) {
+          if (!snapshot.hasData || !snapshot.data!.exists) {
             return Center(child: Text('No user data available.'));
           }
 
@@ -174,26 +126,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     GestureDetector(
-                      onTap: _pickImage,
-                      child: CircleAvatar(
-                        radius: 50,
-                        backgroundColor: Colors.teal,
-                        backgroundImage: _profileImage != null
-                            ? FileImage(_profileImage!)
-                            : (userData['profileImage'] != null
-                            ? NetworkImage(userData['profileImage'])
-                            : null) as ImageProvider?,
-                        child: _profileImage == null &&
-                            (userData['profileImage'] == null ||
-                                userData['profileImage'] == "")
-                            ? Text(
-                          userData['name']?.substring(0, 1).toUpperCase() ?? 'U',
-                          style: TextStyle(
-                              fontSize: 40,
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold),
-                        )
-                            : null,
+                      onTap: _pickAndUploadImage,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          CircleAvatar(
+                            radius: 50,
+                            backgroundColor: Colors.teal,
+                            backgroundImage: _profileImage != null
+                                ? FileImage(_profileImage!)
+                                : (userData['imageUrl'] != null
+                                ? NetworkImage(userData['imageUrl'])
+                                : null) as ImageProvider?,
+                            child: _profileImage == null && userData['imageUrl'] == null
+                                ? Text(
+                              userData['name']?.substring(0, 1).toUpperCase() ?? 'U',
+                              style: TextStyle(
+                                  fontSize: 40,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold),
+                            )
+                                : null,
+                          ),
+                          if (_isUploading)
+                            Positioned.fill(
+                              child: Align(
+                                alignment: Alignment.center,
+                                child: CircularProgressIndicator(color: Colors.white),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                     SizedBox(height: 20),
@@ -221,7 +183,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     Divider(),
                     ElevatedButton.icon(
-                      onPressed: () => _navigateToEditProfile(userData),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ProfileScreenUpdate(userData: userData),
+                          ),
+                        );
+                      },
                       icon: Icon(Icons.edit, color: Colors.white),
                       label: Text('Edit Profile'),
                       style: ElevatedButton.styleFrom(
@@ -238,5 +207,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
         },
       ),
     );
+  }
+
+  Future<bool> _showLogoutConfirmationDialog() async {
+    return await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Logout'),
+        content: Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Logout', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    ) ?? false;
   }
 }

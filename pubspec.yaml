@@ -11,9 +11,11 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
+  path_provider: ^2.0.11
   flutter_local_notifications: ^18.0.1
   shared_preferences: ^2.5.2
   carousel_slider: ^5.0.0
+  flutter_image_compress: ^2.4.0
 
   flutter_staggered_animations: ^1.1.1
   badges: ^3.1.2

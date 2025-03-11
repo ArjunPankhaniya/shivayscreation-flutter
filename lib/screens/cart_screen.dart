@@ -38,7 +38,7 @@ class _CartScreenState extends State<CartScreen> {
     }
 
     Future.delayed(Duration(milliseconds: 200), () { // ✅ Delay to ensure navigation update works
-      navigationProvider.updateIndex(4,context); // ✅ Switch to Categories tab
+      navigationProvider.updateIndex(1,context); // ✅ Switch to Categories tab
     });
   }
 

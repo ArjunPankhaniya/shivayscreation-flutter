@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:shivayscreation/providers/cart_provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ProductDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> product;
@@ -23,7 +24,6 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // final cartProvider = Provider.of<CartProvider>(context);
     final NumberFormat currencyFormatter = NumberFormat.currency(locale: 'en_IN', symbol: '₹');
 
     return Scaffold(
@@ -41,8 +41,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+
                 children: [
-                  _buildProductImage(widget.product['image']),
+                  _buildProductImage(widget.product['imageUrl']),
                   const SizedBox(height: 16),
                   Text(
                     widget.product['name']?.toString() ?? 'Unnamed Product',
@@ -56,14 +57,14 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   const SizedBox(height: 16),
 
                   if (widget.product['description'] != null && widget.product['description'].isNotEmpty)
-                    _buildDescription(widget.product['description']),
+                    _buildDescription(widget.product['description'] ?? ''),
 
                   const SizedBox(height: 24),
 
-                  // ✅ Fix: Ensure button updates when item is added
+
                   ElevatedButton.icon(
                     onPressed: isInCart
-                        ? null  // Disable button if product is already in cart
+                        ? null // Disable button if product is already in cart
                         : () async {
                       await cartProvider.addToCart(widget.product);
                     },
@@ -86,37 +87,16 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   }
 
   Widget _buildProductImage(String? imageUrl) {
-    const String placeholderImage = 'assets/images/placeholder.png';
-
-    return AspectRatio(
-      aspectRatio: 1,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          color: Colors.grey.shade200, // Background color
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: imageUrl != null && imageUrl.isNotEmpty
-              ? FadeInImage.assetNetwork(
-            placeholder: placeholderImage,
-            image: imageUrl,
-            fit: BoxFit.cover,
-            imageErrorBuilder: (context, error, stackTrace) => Image.asset(
-              placeholderImage,
-              fit: BoxFit.cover,
-            ),
-          )
-              : Image.asset(
-            placeholderImage,
-            fit: BoxFit.cover,
-          ),
-        ),
-      ),
-    );
+    return imageUrl != null && imageUrl.isNotEmpty
+        ? CachedNetworkImage(
+      imageUrl: imageUrl,
+      placeholder: (context, url) => CircularProgressIndicator(),
+      errorWidget: (context, url, error) => Image.asset('assets/images/placeholder.png', fit: BoxFit.cover),
+      fit: BoxFit.cover,
+    )
+        : Image.asset('assets/images/placeholder.png', fit: BoxFit.cover);
   }
-
-
+  bool _isExpanded = false;
   Widget _buildDescription(String description) {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -125,16 +105,33 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha((0.5 * 255).toInt()), // ✅ Fix opacity issue
+            color: Colors.black.withOpacity(0.1),
             blurRadius: 8,
             spreadRadius: 2,
           ),
         ],
       ),
-      child: Text(
-        description.length > 100 ? '${description.substring(0, 100)}...' : description,
-        style: const TextStyle(fontSize: 16, color: Colors.black),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _isExpanded || description.length <= 100
+                ? description
+                : '${description.substring(0, 100)}...',
+            style: const TextStyle(fontSize: 16, color: Colors.black),
+          ),
+          if (description.length > 100)
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _isExpanded = !_isExpanded;
+                });
+              },
+              child: Text(_isExpanded ? 'Read Less' : 'Read More'),
+            ),
+        ],
       ),
     );
   }
+
 }

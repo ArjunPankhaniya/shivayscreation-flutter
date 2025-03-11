@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "shivayscreation-new"
-  }
+    "default": "shivayscreation-new",
+    "staging": "shivayscreation-new"
+  },
+  "targets": {},
+  "etags": {}
 }
