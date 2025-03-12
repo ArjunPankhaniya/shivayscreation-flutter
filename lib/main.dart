@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 // Screens
 import 'package:shivayscreation/screens/cart_screen.dart';
 import 'package:shivayscreation/screens/forgot_password_screen.dart';
+import 'package:shivayscreation/screens/my_order.dart';
 import 'package:shivayscreation/screens/navigation_provider.dart';
 import 'package:shivayscreation/screens/products_screen.dart';
 import 'package:shivayscreation/screens/profile_screen_update.dart';
@@ -19,6 +20,10 @@ import 'package:shivayscreation/screens/home_screen.dart';
 import 'package:shivayscreation/screens/profile_screen.dart';
 import 'package:shivayscreation/screens/splash_screen.dart';
 import 'package:shivayscreation/screens/payment_screen.dart';
+import 'package:shivayscreation/screens/about_screen.dart';
+import 'package:shivayscreation/screens/contact_screen.dart';
+import 'package:shivayscreation/screens/help_screen.dart';
+import 'package:shivayscreation/screens/settings_screen.dart';
 
 // Providers
 import 'package:shivayscreation/providers/cart_provider.dart';
@@ -160,6 +165,11 @@ class MyApp extends StatelessWidget {
         '/home': (context) => const HomeScreen(),
         '/cart': (context) => const CartScreen(),
         '/profile': (context) => const ProfileScreen(),
+        '/about': (context) => AboutScreen(), // 👈 Named route
+        '/settings': (context) => SettingsScreen(), // 👈 Named route
+        '/help': (context) => HelpScreen(),
+        '/contact': (context) => ContactScreen(),
+        '/my-order': (context) => const MyOrdersScreen(),
         '/payment': (context) => const PaymentScreen(), // ✅ Payment screen ka route
         '/forgot-password': (context) => const ForgotPasswordScreen(),
         '/productsscreen': (context) {

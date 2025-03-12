@@ -35,7 +35,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       'key': 'rzp_test_5TvoiBecBPLRvZ', // 👈 Replace with actual Test Key
       'amount': (totalPrice * 100).toInt(),
       'currency': 'INR',
-      'name': 'Shivays Creation',
+      'name': 'Shivay\'s Creation',
       'description': 'Purchase from your cart',
       'prefill': {
         'contact': '1234567890',
@@ -90,7 +90,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   /// ❌ Payment Failed
   void _handlePaymentError(PaymentFailureResponse response) {
-    print("Payment Failed: ${response.code} - ${response.message}");
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Payment Failed! Please try again.")),
     );
@@ -99,7 +98,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   /// 💳 External Wallet Used
   void _handleExternalWallet(ExternalWalletResponse response) {
-    print("External Wallet Selected: ${response.walletName}");
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Using External Wallet: ${response.walletName}")),
     );
