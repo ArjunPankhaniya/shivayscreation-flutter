@@ -79,39 +79,6 @@ class _SignupScreenState extends State<SignupScreen> {
     }
   }
 
-
-  // **Login ke baad check karna ki email verified hai ya nahi**
-  Future<void> checkEmailVerification(BuildContext context) async {
-    User? user = _auth.currentUser;
-
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User not found. Please log in again.')),
-      );
-      return;
-    }
-
-    await user.reload(); // 🔄 Refresh user data
-    await Future.delayed(const Duration(seconds: 3)); // 🔄 Delay for Firebase sync
-
-    if (user.emailVerified) {
-      // ✅ Firestore me email verified update karo
-      await _firestore.collection('users').doc(user.uid).update({
-        'emailVerified': true,
-      });
-
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/home'); // ✅ Navigate only if mounted
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('⚠️ Please verify your email before logging in.')),
-      );
-    }
-  }
-
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(

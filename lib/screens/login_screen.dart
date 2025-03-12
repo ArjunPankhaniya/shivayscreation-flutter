@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,6 +15,36 @@ class _LoginScreenState extends State<LoginScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   bool _isPasswordVisible = false;
   bool _isLoading = false;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  Future<void> checkEmailVerification(BuildContext context) async {
+    User? user = _auth.currentUser;
+
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User not found. Please log in again.')),
+      );
+      return;
+    }
+
+    await user.reload(); // 🔄 Refresh user data
+    await Future.delayed(const Duration(seconds: 3)); // 🔄 Delay for Firebase sync
+
+    if (user.emailVerified) {
+      // ✅ Firestore me email verified update karo
+      await _firestore.collection('users').doc(user.uid).update({
+        'emailVerified': true,
+      });
+
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/home'); // ✅ Navigate only if mounted
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('⚠️ Please verify your email before logging in.')),
+      );
+    }
+  }
 
   Future<void> _login() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
@@ -36,8 +67,13 @@ class _LoginScreenState extends State<LoginScreen> {
       User? user = userCredential.user;
 
       if (user != null) {
-        await user.reload(); // 🔄 User data refresh karna zaroori hai
+        await user.reload(); // 🔄 Refresh user data
         if (user.emailVerified) {
+          // ✅ Firestore me emailVerified ko update karna
+          await _firestore.collection('users').doc(user.uid).update({
+            'emailVerified': true,
+          });
+
           Navigator.pushReplacementNamed(context, '/home'); // ✅ Redirect to Home
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
