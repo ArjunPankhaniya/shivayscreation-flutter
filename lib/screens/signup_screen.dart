@@ -92,12 +92,10 @@ class _SignupScreenState extends State<SignupScreen> {
     }
 
     await user.reload(); // 🔄 Refresh user data
-
-    // 🔄 Firebase ka delay handle karne ke liye 3-second wait karte hain
-    await Future.delayed(const Duration(seconds: 3));
+    await Future.delayed(const Duration(seconds: 3)); // 🔄 Delay for Firebase sync
 
     if (user.emailVerified) {
-      // Firestore me update karo ki user verified hai
+      // ✅ Firestore me email verified update karo
       await _firestore.collection('users').doc(user.uid).update({
         'emailVerified': true,
       });
@@ -107,10 +105,11 @@ class _SignupScreenState extends State<SignupScreen> {
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please verify your email before logging in.')),
+        const SnackBar(content: Text('⚠️ Please verify your email before logging in.')),
       );
     }
   }
+
 
 
   @override

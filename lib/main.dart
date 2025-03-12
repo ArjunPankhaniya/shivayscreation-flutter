@@ -18,6 +18,7 @@ import 'package:shivayscreation/screens/signup_screen.dart';
 import 'package:shivayscreation/screens/home_screen.dart';
 import 'package:shivayscreation/screens/profile_screen.dart';
 import 'package:shivayscreation/screens/splash_screen.dart';
+import 'package:shivayscreation/screens/payment_screen.dart';
 
 // Providers
 import 'package:shivayscreation/providers/cart_provider.dart';
@@ -159,6 +160,7 @@ class MyApp extends StatelessWidget {
         '/home': (context) => const HomeScreen(),
         '/cart': (context) => const CartScreen(),
         '/profile': (context) => const ProfileScreen(),
+        '/payment': (context) => const PaymentScreen(), // ✅ Payment screen ka route
         '/forgot-password': (context) => const ForgotPasswordScreen(),
         '/productsscreen': (context) {
           final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;

@@ -18,7 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _login() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('⚠️ Email and Password cannot be empty')),
+        const SnackBar(content: Text('⚠️ Email and Password cannot be empty')),
       );
       return;
     }
@@ -28,11 +28,24 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      await _auth.signInWithEmailAndPassword(
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-      Navigator.pushReplacementNamed(context, '/home');
+
+      User? user = userCredential.user;
+
+      if (user != null) {
+        await user.reload(); // 🔄 User data refresh karna zaroori hai
+        if (user.emailVerified) {
+          Navigator.pushReplacementNamed(context, '/home'); // ✅ Redirect to Home
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('⚠️ Please verify your email before logging in.')),
+          );
+          await _auth.signOut(); // ❌ Logout user if email not verified
+        }
+      }
     } on FirebaseAuthException catch (e) {
       String errorMessage = "Something went wrong!";
       if (e.code == 'user-not-found') {
@@ -49,6 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
       });
     }
   }
+
 
   void _navigateToForgotPassword() {
     Navigator.pushNamed(context, '/forgot-password');

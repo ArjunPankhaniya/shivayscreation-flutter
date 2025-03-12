@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:provider/provider.dart';
 import 'navigation_provider.dart';
 
@@ -15,15 +14,10 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
-  late Razorpay _razorpay;
 
   @override
   void initState() {
     super.initState();
-    _razorpay = Razorpay();
-    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
-    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
-    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
 
     // 🔹 Fetch latest cart data when entering this screen
     Future.delayed(Duration.zero, () {
@@ -42,52 +36,6 @@ class _CartScreenState extends State<CartScreen> {
     });
   }
 
-
-
-  /// Handle successful payment
-  void _handlePaymentSuccess(PaymentSuccessResponse response) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Payment Successful: ${response.paymentId}')),
-    );
-    Provider.of<CartProvider>(context, listen: false).clearCart();
-  }
-
-  /// Handle payment failure
-  void _handlePaymentError(PaymentFailureResponse response) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Payment Failed: ${response.message}')),
-    );
-  }
-
-  /// Handle external wallet
-  void _handleExternalWallet(ExternalWalletResponse response) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('External Wallet Selected: ${response.walletName}')),
-    );
-  }
-
-  /// Open Razorpay checkout
-  void _openCheckout() {
-    final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    double totalPrice = cartProvider.getTotalPrice();
-
-    var options = {
-      'key': 'your_razorpay_api_key',
-      'amount': (totalPrice * 100).toInt(),
-      'name': 'Your Store Name',
-      'description': 'Purchase from your cart',
-      'prefill': {
-        'contact': '1234567890',
-        'email': 'user@example.com',
-      },
-    };
-
-    try {
-      _razorpay.open(options);
-    } catch (e) {
-      print("Error opening Razorpay: $e");
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -195,7 +143,9 @@ class _CartScreenState extends State<CartScreen> {
           ),
           const SizedBox(height: 10),
           ElevatedButton(
-            onPressed: _openCheckout,
+            onPressed: () {
+              Navigator.pushNamed(context, '/payment'); // ✅ Navigate to Payment Screen
+            },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
             child: const Center(
               child: Text('Proceed to Checkout', style: TextStyle(fontSize: 16)),
