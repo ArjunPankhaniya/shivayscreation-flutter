@@ -7,13 +7,14 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shivayscreation/firebase_options.dart';
+import 'package:shivayscreation/providers/order_provider.dart';
 
 
 // Screens
 import 'package:shivayscreation/screens/cart_screen.dart';
 import 'package:shivayscreation/screens/forgot_password_screen.dart';
 import 'package:shivayscreation/screens/my_order.dart';
-import 'package:shivayscreation/screens/navigation_provider.dart';
+import 'package:shivayscreation/providers/navigation_provider.dart';
 import 'package:shivayscreation/screens/products_screen.dart';
 import 'package:shivayscreation/screens/profile_screen_update.dart';
 import 'package:shivayscreation/screens/login_screen.dart';
@@ -59,6 +60,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (context) => CartProvider()),
         ChangeNotifierProvider(create: (context) => NavigationProvider()),
+        ChangeNotifierProvider(create: (_) => OrdersProvider()),
       ],
       child: const MyApp(),
     ),

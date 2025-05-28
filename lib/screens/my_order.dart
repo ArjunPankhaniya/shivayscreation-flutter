@@ -1,140 +1,132 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+
+import '../providers/order_provider.dart'; // Assuming this path is correct
 
 class MyOrdersScreen extends StatefulWidget {
-  final VoidCallback? onRefresh;
-  const MyOrdersScreen({Key? key, this.onRefresh}) : super(key: key);
+  final VoidCallback? onRefresh; // This is not used in the current build method
+  const MyOrdersScreen({super.key, this.onRefresh});
 
   @override
   _MyOrdersScreenState createState() => _MyOrdersScreenState();
 }
 
 class _MyOrdersScreenState extends State<MyOrdersScreen> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  late Future<List<Map<String, dynamic>>> _ordersFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _refreshOrders(); // Orders fetch karne ke liye function call
-  }
-
-  void _refreshOrders() {
-    setState(() {
-      _ordersFuture = fetchOrdersWithProducts();
-    });
-  }
-
-  Future<List<Map<String, dynamic>>> fetchOrdersWithProducts() async {
-    final User? user = _auth.currentUser;
-    if (user == null) return [];
-
-    try {
-      QuerySnapshot orderSnapshot = await _firestore
-          .collection('orders')
-          .where('userId', isEqualTo: user.uid)
-          .orderBy('timestamp', descending: true)
-          .get();
-
-      List<Map<String, dynamic>> ordersWithProducts = [];
-
-      for (var orderDoc in orderSnapshot.docs) {
-        var orderData = orderDoc.data() as Map<String, dynamic>;
-        if (!orderData.containsKey('products') || orderData['products'] == null) continue;
-
-        List<dynamic> products = orderData['products'];
-        ordersWithProducts.add({
-          'orderId': orderDoc.id,
-          'totalAmount': orderData['totalAmount'] ?? 0,
-          'status': orderData['status'] ?? 'Pending',
-          'orderDate': orderData['timestamp'] != null
-              ? (orderData['timestamp'] as Timestamp).toDate()
-              : DateTime.now(),
-          'products': products,
-        });
-      }
-
-      return ordersWithProducts;
-    } catch (e) {
-      print("Error fetching orders: $e");
-      return [];
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        _refreshOrders(); // Jab user back kare tab refresh ho
-        return true;
+    final ordersProvider = Provider.of<OrdersProvider>(context);
+
+    return PopScope(
+      canPop: true, // Set to false if you want to conditionally prevent popping
+      // Use the signature your IDE prefers and what's in your provided context
+      onPopInvokedWithResult: (bool didPop, dynamic result) async {
+        if (didPop) {
+          // If the pop actually happened. The 'result' parameter contains
+          // the value that might have been passed to Navigator.pop(context, result)
+          // if this screen was popped with a result. You are not using it here, which is fine.
+
+          // Ensure context is still valid if the operation is async and potentially long,
+          // though fetchOrders might be quick.
+          if (mounted) {
+            await Provider.of<OrdersProvider>(context, listen: false).fetchOrders(context);
+          }
+        }
       },
       child: Scaffold(
-        // appBar: AppBar(
-        //   title: const Text("My Orders"),
-        //   centerTitle: true,
-        //   backgroundColor: Colors.lightBlue[800],
-        // ),
         body: RefreshIndicator(
           onRefresh: () async {
-            _refreshOrders(); // ✅ Refresh pe orders reload honge
+            // Ensure context is valid if the operation is async
+            if (mounted) {
+              await Provider.of<OrdersProvider>(context, listen: false).fetchOrders(context);
+            }
           },
-          child: FutureBuilder<List<Map<String, dynamic>>>(
-            future: _ordersFuture,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return const Center(
-                  child: Text("No orders found.", style: TextStyle(fontSize: 18)),
-                );
-              }
+          child: ordersProvider.isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : ordersProvider.orders.isEmpty
+              ? const Center(
+            child: Text("No orders found.", style: TextStyle(fontSize: 18)),
+          )
+              : ListView.builder(
+            itemCount: ordersProvider.orders.length,
+            itemBuilder: (context, index) {
+              var order = ordersProvider.orders[index];
+              // It's safer to provide default values or handle potential nulls
+              String orderId = order['orderId']?.toString() ?? 'N/A';
+              String status = order['status']?.toString() ?? 'Pending';
+              String totalAmount = order['totalAmount']?.toString() ?? '0';
+              String orderDate = order['orderDate'] != null
+                  ? order['orderDate'].toString().split(' ')[0]
+                  : 'Unknown Date';
+              List<dynamic> products = order['products'] as List<dynamic>? ?? [];
 
-              return ListView.builder(
-                itemCount: snapshot.data!.length,
-                itemBuilder: (context, index) {
-                  var order = snapshot.data![index];
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: ExpansionTile(
+                  title: Text(
+                    "Order ID: $orderId",
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Status: $status"),
+                      Text("Total: ₹$totalAmount"),
+                      Text("Date: $orderDate"),
+                    ],
+                  ),
+                  children: List.generate(products.length, (productIndex) {
+                    var product = products[productIndex] as Map<String, dynamic>? ?? {};
+                    String productName = product['name']?.toString() ?? 'Unnamed Product';
+                    String productPrice = product['price']?.toString() ?? 'N/A';
+                    String? imageUrl = product['imageUrl']?.toString();
 
-                  return Card(
-                    margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: ExpansionTile(
-                      title: Text(
-                        "Order ID: ${order['orderId']}",
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text("Status: ${order['status']}"),
-                          Text("Total: ₹${order['totalAmount']}"),
-                          Text("Date: ${order['orderDate'].toString().split(' ')[0]}"),
-                        ],
-                      ),
-                      children: List.generate(order['products'].length, (productIndex) {
-                        var product = order['products'][productIndex];
-                        return ListTile(
-                          leading: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              product['imageUrl'],
+                    return ListTile(
+                      leading: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: (imageUrl != null && imageUrl.isNotEmpty)
+                            ? Image.network(
+                          imageUrl,
+                          width: 60,
+                          height: 60,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return SizedBox(
                               width: 60,
                               height: 60,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          title: Text(product['name']),
-                          subtitle: Text("Price: ₹${product['price']}"),
-                        );
-                      }),
-                    ),
-                  );
-                },
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  value: loadingProgress.expectedTotalBytes != null
+                                      ? loadingProgress.cumulativeBytesLoaded /
+                                      loadingProgress.expectedTotalBytes!
+                                      : null,
+                                ),
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return const SizedBox(
+                              width: 60,
+                              height: 60,
+                              child: Icon(Icons.broken_image, size: 40),
+                            );
+                          },
+                        )
+                            : const SizedBox(
+                          width: 60,
+                          height: 60,
+                          child: Icon(Icons.image_not_supported, size: 40),
+                        ),
+                      ),
+                      title: Text(productName),
+                      subtitle: Text("Price: ₹$productPrice"),
+                    );
+                  }),
+                ),
               );
             },
           ),
