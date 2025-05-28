@@ -36,6 +36,7 @@ ios/.symlinks/
 ios/Flutter/App.framework
 ios/Flutter/Flutter.podspec
 ios/Flutter/Generated.xcconfig
+#
 
 # Android related
 android/.gradle/
