@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart'; // For date and currency formatting
 
 // You might need to import your product model if you have one,
@@ -86,25 +87,49 @@ class OrderDetailsScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Order Details'),
-        elevation: 1,
+        title: Text(
+          'Order Details',
+          style: GoogleFonts.lato(
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+            color: Colors.black,
+          ),
+        ),
+        centerTitle: true,
+        elevation: 4, // ✅ Adds subtle shadow
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+        ),
+        backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.lightBlue, Colors.teal],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            _buildOrderSummaryCard(context, orderId, orderDate, status, statusColor),
-            const SizedBox(height: 16),
-            _buildSectionTitle(context, 'Items Ordered (${products.length})'),
-            _buildProductList(context, products),
-            const SizedBox(height: 16),
             _buildSectionTitle(context, 'Shipping Information'),
             _buildShippingDetailsCard(context, shippingName, fullAddress, shippingPhone),
             const SizedBox(height: 16),
+
+            _buildSectionTitle(context, 'Items Ordered (${products.length})'),
+            _buildProductList(context, products),
+            const SizedBox(height: 16),
+
             _buildSectionTitle(context, 'Payment Information'),
             _buildPaymentDetailsCard(context, paymentMethod, transactionId, paymentStatus, subtotal, shippingFee, discount, totalAmount),
             const SizedBox(height: 24),
+
+            _buildOrderSummaryCard(context, orderId, orderDate, status, statusColor),
+            const SizedBox(height: 16),
             // if (trackingNumber != 'N/A')
             //   Center(
             //     child: ElevatedButton.icon(
