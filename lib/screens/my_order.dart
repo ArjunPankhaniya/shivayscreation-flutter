@@ -71,11 +71,11 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
         return true;
       },
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text("My Orders"),
-          centerTitle: true,
-          backgroundColor: Colors.lightBlue[800],
-        ),
+        // appBar: AppBar(
+        //   title: const Text("My Orders"),
+        //   centerTitle: true,
+        //   backgroundColor: Colors.lightBlue[800],
+        // ),
         body: RefreshIndicator(
           onRefresh: () async {
             _refreshOrders(); // ✅ Refresh pe orders reload honge

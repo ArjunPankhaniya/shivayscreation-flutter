@@ -7,14 +7,10 @@ import 'login_screen.dart';
 import 'profile_screen.dart';
 import 'categories_screen.dart';
 import 'cart_screen.dart';
-import 'add_category_product_screen.dart';
 import 'home_content.dart';
-import 'about_screen.dart';
-import 'help_screen.dart';
-import 'contact_screen.dart';
-import 'settings_screen.dart';
 import 'package:shivayscreation/providers/cart_provider.dart';
 import 'my_order.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -90,20 +86,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Shivay\'s Creation',
-          style: TextStyle(
+          style: GoogleFonts.lato(
             fontWeight: FontWeight.bold,
             fontSize: 24,
-            color: Colors.black, // ✅ Text BLACK rahega
+            color: Colors.black,
           ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.transparent, // ✅ Background transparent
+        elevation: 4, // ✅ Adds subtle shadow
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+        ),
+        backgroundColor: Colors.transparent,
         flexibleSpace: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Colors.lightBlue, Colors.teal], // ✅ Gradient Background
+              colors: [Colors.lightBlue, Colors.teal],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -111,108 +111,52 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
+        child: Column(
           children: [
-            UserAccountsDrawerHeader(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.lightBlue, Colors.teal],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+            DrawerHeader(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircleAvatar(
+                    radius: 40,
+                    backgroundImage: userImageUrl.isNotEmpty ? NetworkImage(userImageUrl) : null,
+                    child: userImageUrl.isEmpty
+                        ? const Icon(Icons.person, size: 40, color: Colors.teal)
+                        : null,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    userName,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    FirebaseAuth.instance.currentUser?.email ?? "No Email",
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                ],
               ),
-              accountName: Text(userName, style: const TextStyle(color: Colors.white)),
-              accountEmail: Text(FirebaseAuth.instance.currentUser?.email ?? "No Email", style: const TextStyle(color: Colors.white70)),
-              currentAccountPicture: GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const ProfileScreen()),
-                  );
-                },
-                child: CircleAvatar(
-                  backgroundColor: Colors.white,
-                  backgroundImage: userImageUrl.isNotEmpty ? NetworkImage(userImageUrl) : null,
-                  child: userImageUrl.isEmpty
-                      ? const Icon(Icons.person, size: 40, color: Colors.teal)
-                      : null,
-                ),
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.home),
-              title: const Text('Home'),
-              onTap: () {
-                _onItemTapped(0);
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.category),
-              title: const Text('Categories'),
-              onTap: () {
-                _onItemTapped(1);
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.shopping_cart),
-              title: const Text('Cart'),
-              onTap: () {
-                _onItemTapped(2);
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.add_circle),
-              title: const Text('Add Category'),
-              onTap: () {
-                _navigateTo(context, const AddCategoryProductScreen()); // ✅ Screen pe navigate karega
-              },
             ),
 
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('Profile'),
-              onTap: () {
-                _onItemTapped(4);
-                Navigator.pop(context);
-              },
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.info),
-              title: const Text('About Us'),
-              onTap: () {
-                _navigateTo(context, const AboutScreen());
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Settings'),
-              onTap: () {
-                _navigateTo(context, const SettingsScreen());
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.help),
-              title: const Text('Help & Support'),
-              onTap: () {
-                _navigateTo(context, const HelpScreen());
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.contact_phone),
-              title: const Text('Contact'),
-              onTap: () {
-                _navigateTo(context, const ContactScreen());
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.exit_to_app, color: Colors.red),
-              title: const Text('Logout', style: TextStyle(color: Colors.red)),
-              onTap: _logout,
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  _buildDrawerTile(Icons.home, 'Home', 0),
+                  _buildDrawerTile(Icons.category, 'Categories', 1),
+                  _buildDrawerTile(Icons.shopping_cart, 'Cart', 2),
+                  _buildDrawerTile(Icons.person, 'Profile', 4),
+                  const Divider(),
+                  _buildDrawerTile(Icons.info, 'About Us', 5),
+                  _buildDrawerTile(Icons.settings, 'Settings', 6),
+                  _buildDrawerTile(Icons.help, 'Help & Support', 7),
+                  _buildDrawerTile(Icons.contact_phone, 'Contact', 8),
+                  ListTile(
+                    leading: const Icon(Icons.exit_to_app, color: Colors.red),
+                    title: const Text('Logout', style: TextStyle(color: Colors.red)),
+                    onTap: _logout,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -264,6 +208,17 @@ class _HomeScreenState extends State<HomeScreen> {
           const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
+    );
+  }
+
+  Widget _buildDrawerTile(IconData icon, String title, int index) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.teal),
+      title: Text(title, style: GoogleFonts.lato(fontSize: 16)),
+      onTap: () {
+        _onItemTapped(index);
+        Navigator.pop(context);
+      },
     );
   }
 }

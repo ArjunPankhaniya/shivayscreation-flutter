@@ -43,10 +43,10 @@ class _CartScreenState extends State<CartScreen> {
     final cartItems = cartProvider.cartItems;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Your Cart'),
-        backgroundColor: Colors.teal,
-      ),
+      // appBar: AppBar(
+      //   title: const Text('Your Cart'),
+      //   backgroundColor: Colors.teal,
+      // ),
       body: cartItems.isEmpty ? _buildEmptyCartView() : _buildCartItemsListView(cartProvider),
     );
   }

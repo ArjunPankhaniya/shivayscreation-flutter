@@ -23,6 +23,13 @@ android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 firebase.json
 
+# ✅ Web service worker (NEEDS to be committed for FCM to work)
+# Do NOT ignore firebase-messaging-sw.js
+# web/firebase-messaging-sw.js — must be included in version control
+
+# ✅ Firebase options file (must be included)
+# lib/firebase_options.dart — must be committed
+
 # iOS related
 ios/Pods/
 ios/.symlinks/
@@ -72,7 +79,6 @@ windows/flutter/
 
 # macOS system files
 .DS_Store
-
 
 gradle-wrapper.jar
 /.gradle

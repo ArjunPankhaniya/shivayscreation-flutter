@@ -125,10 +125,10 @@ class HomeContent extends StatelessWidget {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                  childAspectRatio: 0.75, // ✅ Aspect ratio improved
+                  crossAxisCount: 2,          // ✅ Number of columns (2 in this case)
+                  crossAxisSpacing: 0,       // ✅ Horizontal spacing between grid items
+                  mainAxisSpacing: 0,        // ✅ Vertical spacing between grid items
+                  childAspectRatio: 0.70,     // ✅ Width-to-height ratio of each grid item
                 ),
                 itemCount: products.length,
                 itemBuilder: (context, index) {
@@ -148,13 +148,15 @@ class HomeContent extends StatelessWidget {
                       );
                     },
                     child: Card(
-                      elevation: 6,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      elevation: 4,
+                      margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Expanded(
                             child: ClipRRect(
-                              borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+                              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                               child: Image.network(
                                 imageUrl,
                                 width: double.infinity,
@@ -166,47 +168,59 @@ class HomeContent extends StatelessWidget {
                             ),
                           ),
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                            child: Text(
-                              product['name'] ?? 'Unknown Product',
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                              textAlign: TextAlign.center,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
-                            child: Text(
-                              '₹${product['price'] ?? 0.0}',
-                              style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          const SizedBox(height: 5),
-                          Consumer<CartProvider>(
-                            builder: (context, cartProvider, child) {
-                              final bool isInCart = cartProvider.cartItems.any((item) => item['id'] == productId);
-
-                              return SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton(
-                                  onPressed: isInCart ? null : () {
-                                    cartProvider.addToCart(product);
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: isInCart ? Colors.grey : Colors.blue,
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            child: Column(
+                              children: [
+                                Text(
+                                  product['name'] ?? 'Unknown Product',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
                                   ),
-                                  child: Text(
-                                    isInCart ? 'In Cart' : 'Add to Cart',
-                                    style: const TextStyle(color: Colors.white),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '₹${product['price'] ?? 0.0}',
+                                  style: const TextStyle(
+                                    color: Colors.green,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
                                   ),
                                 ),
-                              );
-                            },
+                                const SizedBox(height: 8),
+                                Consumer<CartProvider>(
+                                  builder: (context, cartProvider, child) {
+                                    final bool isInCart = cartProvider.cartItems.any((item) => item['id'] == productId);
+
+                                    return SizedBox(
+                                      width: double.infinity,
+                                      child: ElevatedButton(
+                                        onPressed: isInCart ? null : () {
+                                          cartProvider.addToCart(product);
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: isInCart ? Colors.grey[400] : Colors.blue,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                          padding: const EdgeInsets.symmetric(vertical: 10),
+                                        ),
+                                        child: Text(
+                                          isInCart ? 'In Cart' : 'Add to Cart',
+                                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
                     ),
+
                   );
                 },
               );

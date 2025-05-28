@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shivayscreation/firebase_options.dart';
+
 
 // Screens
 import 'package:shivayscreation/screens/cart_screen.dart';
@@ -34,7 +36,8 @@ FlutterLocalNotificationsPlugin();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform,);
+
 
   // 🔥 Clear stored login data on first launch
   await clearStoredAuthData();

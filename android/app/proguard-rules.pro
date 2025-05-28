@@ -1,6 +1,11 @@
 # Keep Razorpay package
--keep class com.razorpay.** { *; }
+-keepattributes *Annotation*
 -dontwarn com.razorpay.**
+-keep class com.razorpay.** {*;}
+-optimizations !method/inlining/
+-keepclasseswithmembers class * {
+  public void onPayment*(...);
+}
 
 # Firebase and Play Services fixes
 -keep class com.google.firebase.** { *; }

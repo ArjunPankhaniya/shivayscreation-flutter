@@ -94,14 +94,14 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Categories',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.teal,
-        centerTitle: true,
-      ),
+      // appBar: AppBar(
+      //   title: const Text(
+      //     'Categories',
+      //     style: TextStyle(fontWeight: FontWeight.bold),
+      //   ),
+      //   backgroundColor: Colors.teal,
+      //   centerTitle: true,
+      // ),
       body: isLoadingCategories
           ? const Center(child: CircularProgressIndicator())
           : categories.isEmpty
