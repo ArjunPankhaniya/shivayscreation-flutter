@@ -18,6 +18,8 @@ import 'my_order.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shivayscreation/providers/order_provider.dart';
 import 'package:shivayscreation/screens/add_category_product_screen.dart';
+import 'add_product_screen.dart';
+import 'add_category_screen.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -101,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
         if (index == 2) {
           cartProvider.fetchCart();
         } else if (index == 3) {
-          ordersProvider.fetchOrders(context);
+          ordersProvider.fetchOrders();
         }
       }
     });
@@ -212,13 +214,24 @@ class _HomeScreenState extends State<HomeScreen> {
                                   fontWeight: FontWeight.w500),
                             ),
                           ),
-                          _buildDrawerTile(drawerContext, Icons.add, 'Add', -1,
+
+                          _buildDrawerTile(drawerContext, Icons.add_to_drive, 'Add Category', -1,
                               onTapOverride: () {
                                 Navigator.push(
                                     drawerContext,
                                     MaterialPageRoute(
-                                        builder: (context) => const AddCategoryProductScreen()));
+                                        builder: (context) => const AddCategoryScreen()));
                               }),
+
+                          _buildDrawerTile(drawerContext, Icons.add_business, 'Add Product', -1,
+                              onTapOverride: () {
+                                Navigator.push(
+                                    drawerContext,
+                                    MaterialPageRoute(
+                                        builder: (context) => const AddProductScreen()));
+                              }),
+
+
                           _buildDrawerTile(drawerContext, Icons.info_outline, 'About Us', -1,
                               onTapOverride: () {
                                 Navigator.push(
@@ -293,7 +306,7 @@ class _HomeScreenState extends State<HomeScreen> {
               return BottomNavigationBar(
                 currentIndex: navigationProvider.selectedIndex,
                 onTap: (index) => _onItemTapped(bottomNavContext, index),
-                selectedItemColor: Colors.teal,
+                selectedItemColor: Colors.blue,
                 unselectedItemColor: Colors.grey,
                 type: BottomNavigationBarType.fixed,
                 items: [
@@ -316,7 +329,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: Text(
                                 '${cartProvider.cartItems.length}',
                                 style: const TextStyle(
-                                    color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                    color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold),
                                 textAlign: TextAlign.center,
                               ),
                             ),

@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:shivayscreation/main.dart'; // for flutterLocalNotificationsPlugin
+
 
 class SplashScreen extends StatefulWidget {
   final VoidCallback? onInitComplete;
@@ -77,7 +77,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
           Navigator.pushReplacementNamed(context, '/login');
         }
       } catch (e) {
-        print("Error reloading user on splash: $e");
+        // print("Error reloading user on splash: $e");
         // Handle error, e.g., network issue. Default to login screen.
         // You might want to sign out the user if reload fails critically
         // await FirebaseAuth.instance.signOut();
@@ -118,6 +118,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     final InitializationSettings initSettings =
     InitializationSettings(android: androidInitSettings);
 
+    var flutterLocalNotificationsPlugin;
     await flutterLocalNotificationsPlugin.initialize(initSettings);
     debugPrint("✅ Local notifications initialized.");
   }
@@ -156,6 +157,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     const NotificationDetails platformChannelSpecifics =
     NotificationDetails(android: androidPlatformChannelSpecifics);
 
+    var flutterLocalNotificationsPlugin;
     await flutterLocalNotificationsPlugin.show(
       0,
       message.notification?.title ?? "New Notification",

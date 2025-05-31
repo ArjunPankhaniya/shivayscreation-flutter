@@ -7,10 +7,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 // --- Configuration (Best Practice: Move to a separate, gitignored file) ---
 class AppConfig {
-  // IMPORTANT: Replace with your ACTUAL Razorpay Test Key ID
-  // It's highly recommended to load this from environment variables or a secure config file
-  // and NOT hardcode it directly, especially for production keys.
   static const String razorpayKeyId = 'rzp_test_5TvoiBecBPLRvZ'; // <<< REPLACE THIS
+// For production, use your live key and consider loading from .env
+// static const String razorpayKeyId = String.fromEnvironment('RAZORPAY_KEY_ID', defaultValue: 'YOUR_DEFAULT_TEST_KEY');
 }
 // --- End Configuration ---
 
@@ -18,24 +17,36 @@ class AppConfig {
 const String _kOrdersCollection = 'orders';
 // --- End Firestore Constants ---
 
-// --- Basic Order Data Model ---
+// --- Basic Order Data Model (Modified to include more details) ---
 class OrderData {
-  final String orderId;
+  final String orderId; // Usually the paymentId from Razorpay or your own generated ID
   final String userId;
   final List<Map<String, dynamic>> products;
-  final double totalAmount;
-  final Timestamp timestamp; // Use Firestore Timestamp for consistency
+  final double subtotal; // Price before discount and shipping
+  final double shippingFee;
+  final double discountApplied;
+  final double totalAmount; // Final amount paid by customer (subtotal + shipping - discount)
+  final Timestamp timestamp;
   final String status;
-  final String paymentMethod; // Added payment method
+  final String paymentMethod;
+  final String? razorpayPaymentId;
+  final String? razorpayOrderId; // If you generate order_id on backend first
+  final String? razorpaySignature; // For verification
 
   OrderData({
     required this.orderId,
     required this.userId,
     required this.products,
+    required this.subtotal,
+    required this.shippingFee,
+    required this.discountApplied,
     required this.totalAmount,
     required this.timestamp,
     required this.status,
-    this.paymentMethod = 'Razorpay', // Default payment method
+    this.paymentMethod = 'Razorpay',
+    this.razorpayPaymentId,
+    this.razorpayOrderId,
+    this.razorpaySignature,
   });
 
   Map<String, dynamic> toMap() {
@@ -43,18 +54,35 @@ class OrderData {
       'orderId': orderId,
       'userId': userId,
       'products': products,
+      'subtotal': subtotal,
+      'shippingFee': shippingFee,
+      'discountApplied': discountApplied,
       'totalAmount': totalAmount,
-      'timestamp': timestamp, // Firestore will handle server timestamp if FieldValue.serverTimestamp() is used
+      'timestamp': timestamp,
       'status': status,
       'paymentMethod': paymentMethod,
+      'razorpayPaymentId': razorpayPaymentId,
+      'razorpayOrderId': razorpayOrderId,
+      'razorpaySignature': razorpaySignature,
     };
   }
 }
 // --- End Order Data Model ---
 
-
 class PaymentScreen extends StatefulWidget {
-  const PaymentScreen({super.key});
+  // <<<--- MODIFIED CONSTRUCTOR --- >>>
+  final double subtotal;
+  final double shippingFee;
+  final double discount;
+  final double finalAmount; // This is the amount Razorpay will charge
+
+  const PaymentScreen({
+    super.key,
+    required this.subtotal,
+    required this.shippingFee,
+    required this.discount,
+    required this.finalAmount,
+  });
 
   @override
   State<PaymentScreen> createState() => _PaymentScreenState();
@@ -62,135 +90,126 @@ class PaymentScreen extends StatefulWidget {
 
 class _PaymentScreenState extends State<PaymentScreen> {
   late Razorpay _razorpay;
-  bool _isProcessingOrder = false; // To show loading state during Firestore save
-  bool _isRazorpayLoading = true; // To show loading while Razorpay SDK is active
+  bool _isProcessingOrder = false;
+  bool _isRazorpayLoading = true;
+  String? _lastOrderIdAttempted; // To return in case of failure after Firestore success
 
   @override
   void initState() {
     super.initState();
     _razorpay = Razorpay();
-
     _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
     _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
     _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
 
-    // Delay opening checkout slightly to ensure widget is fully built
-    // and to get context for Theme if needed immediately.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) { // Ensure the widget is still in the tree
+      if (mounted) {
         _openCheckout();
       }
     });
   }
 
-  /// 🛒 Open Razorpay checkout
   void _openCheckout() {
-    if (!mounted) return; // Check if the widget is still mounted
+    if (!mounted) return;
 
-    final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    double totalPrice = cartProvider.getTotalPrice();
+    // Use widget.finalAmount passed from CartScreen
+    double amountToPay = widget.finalAmount;
 
-    if (totalPrice <= 0) {
+    if (amountToPay <= 0 && widget.subtotal > 0) {
+      // This means the order is free due to discounts.
+      // Razorpay might not handle 0 amount payments directly in the same way.
+      // You might need a different flow for 100% discounted orders.
+      // For now, if it's truly free, we can simulate a success and save the order.
+      // print("Order is free due to discounts. Processing as successful.");
+      // Simulate a successful "payment" for free orders
+      _handleFreeOrderSuccess();
+      return;
+    }
+    if (amountToPay <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Your cart is empty. Please add items to proceed.')),
+        const SnackBar(content: Text('Invalid amount. Cannot proceed with payment.')),
       );
-      Navigator.pop(context);
+      _finishPaymentProcess(success: false); // Pop with failure
       return;
     }
 
-    // --- User Information (Best Practice: Fetch from User Profile) ---
+
     final currentUser = FirebaseAuth.instance.currentUser;
-    String userContact = currentUser?.phoneNumber ?? '9876543210'; // Fallback
-    String userEmail = currentUser?.email ?? 'guest@example.com';   // Fallback
-    // --- End User Information ---
+    String userContact = currentUser?.phoneNumber ?? '9999999999'; // Fallback
+    String userEmail = currentUser?.email ?? 'guest@example.com'; // Fallback
 
     var options = {
       'key': AppConfig.razorpayKeyId,
-      'amount': (totalPrice * 100).toInt(), // Amount in paise
+      'amount': (amountToPay * 100).toInt(), // Amount in paise
       'currency': 'INR',
-      'name': 'Shivay\'s Creation', // Your App/Company Name
-      'description': 'Order from your cart',
-      // 'order_id': 'YOUR_SERVER_GENERATED_ORDER_ID', // Optional: If you create an order_id on your backend first
+      'name': "Shivay's Creation",
+      'description': 'Order Payment',
+      // 'order_id': serverGeneratedOrderId, // If you create order on backend first
       'prefill': {
         'contact': userContact,
         'email': userEmail,
       },
       'theme': {
-        // Using Color to Hex. Make sure to define the 'toHex()' extension for Color.
         'color': Theme.of(context).primaryColor.toHex(),
       },
-      // Optional: Add notes, retry options, timeout etc.
-      // 'notes': {
-      //   'address': 'Shipped to: User Address from profile'
-      // },
-      // 'retry': {'enabled': true, 'max_count': 3},
-      'timeout': 300, // in seconds (default is 5 mins)
+      'timeout': 300, // 5 minutes
     };
 
     try {
       setState(() {
-        _isRazorpayLoading = true; // Razorpay window is about to open
+        _isRazorpayLoading = true;
       });
       _razorpay.open(options);
     } catch (e) {
-      print("Error opening Razorpay: $e");
+      // print("Error opening Razorpay: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not initiate payment. Please try again. Error: ${e.toString()}')),
+        SnackBar(content: Text('Could not initiate payment. Error: ${e.toString()}')),
       );
       if (mounted) {
         setState(() {
           _isRazorpayLoading = false;
         });
-        Navigator.pop(context); // Go back if Razorpay can't even open
+        _finishPaymentProcess(success: false); // Pop with failure
       }
     }
   }
 
-  /// ✅ Payment Success
-  void _handlePaymentSuccess(PaymentSuccessResponse response) async {
+  // Special handler for orders that are free after discounts
+  void _handleFreeOrderSuccess() async {
     if (!mounted) return;
 
     setState(() {
-      _isRazorpayLoading = false; // Razorpay UI is closed
-      _isProcessingOrder = true;  // Now processing the order (saving to Firestore)
+      _isRazorpayLoading = false;
+      _isProcessingOrder = true;
     });
 
-    final paymentId = response.paymentId;
-    final orderIdFromResponse = response.orderId; // If you passed an order_id to Razorpay
-    final signature = response.signature; // For server-side verification if implemented
-
-    if (paymentId == null) {
-      print("Critical: Razorpay payment success but no paymentId received. Response: ${response.toString()}");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Payment successful, but there was an issue recording your order. Please contact support.')),
-      );
-      _finishPaymentProcess();
-      return;
-    }
-
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    final userId = FirebaseAuth.instance.currentUser?.uid ?? 'guest_user'; // Handle guest user appropriately
+    final userId = FirebaseAuth.instance.currentUser?.uid ?? 'guest_user_free_order';
+    final generatedOrderId = 'FREE-${DateTime.now().millisecondsSinceEpoch}'; // Generate a unique ID for free orders
+    _lastOrderIdAttempted = generatedOrderId;
+
 
     List<Map<String, dynamic>> cartItems = cartProvider.cartItems.map((item) {
-      // Ensure all necessary fields are present and correctly typed
       return {
         'productId': item['id']?.toString() ?? 'unknown_id',
         'name': item['name']?.toString() ?? 'Unknown Product',
         'price': (item['price'] is num) ? item['price'] : (double.tryParse(item['price']?.toString() ?? '0.0') ?? 0.0),
         'quantity': (item['quantity'] is int) ? item['quantity'] : (int.tryParse(item['quantity']?.toString() ?? '1') ?? 1),
         'imageUrl': item['imageUrl']?.toString() ?? '',
-        // Add any other product details you need, e.g., variant, SKU
       };
     }).toList();
 
     final newOrder = OrderData(
-      orderId: paymentId, // Using paymentId as the primary orderId for simplicity
+      orderId: generatedOrderId,
       userId: userId,
       products: cartItems,
-      totalAmount: cartProvider.getTotalPrice(),
-      timestamp: Timestamp.now(), // Firestore server timestamp is also an option: FieldValue.serverTimestamp()
-      status: 'Processing', // Initial order status
-      paymentMethod: 'Razorpay (Success)',
+      subtotal: widget.subtotal,
+      shippingFee: widget.shippingFee,
+      discountApplied: widget.discount,
+      totalAmount: widget.finalAmount, // Should be 0.0 for free orders
+      timestamp: Timestamp.now(),
+      status: 'Completed (Free)',
+      paymentMethod: 'Discount (100%)',
     );
 
     try {
@@ -199,116 +218,197 @@ class _PaymentScreenState extends State<PaymentScreen> {
           .doc(newOrder.orderId)
           .set(newOrder.toMap());
 
-      cartProvider.clearCart(); // Clear cart only after successful save
+      await cartProvider.clearCart();
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Payment Successful! Your Order ID: ${newOrder.orderId}')),
+        SnackBar(content: Text('Order Placed (Free)! Order ID: ${newOrder.orderId}')),
       );
-
-      // --- Navigation (Best Practice: Navigate to an Order Confirmation Screen) ---
-      // Example:
-      // Navigator.of(context).pushAndRemoveUntil(
-      //   MaterialPageRoute(builder: (context) => OrderConfirmationScreen(orderId: newOrder.orderId)),
-      //   (Route<dynamic> route) => false, // Clears navigation stack
-      // );
-      // For now, just pop:
-      // --- End Navigation ---
-
+      _finishPaymentProcess(success: true, orderId: newOrder.orderId);
     } catch (e) {
-      print("Firestore Error: Failed to save order - $e. Payment ID: $paymentId");
-      // Potentially, you might want to store this failed order attempt locally or flag it for manual processing.
+      // print("Firestore Error (Free Order): Failed to save order - $e. Order ID: ${newOrder.orderId}");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Payment successful, but failed to save your order. Please contact support with Payment ID: $paymentId')),
+        SnackBar(content: Text('Failed to save your free order. Please contact support with Order ID: ${newOrder.orderId}')),
       );
-    } finally {
-      _finishPaymentProcess();
+      _finishPaymentProcess(success: false, orderId: newOrder.orderId); // Success false as order save failed
     }
   }
 
-  /// ❌ Payment Failed
+
+  void _handlePaymentSuccess(PaymentSuccessResponse response) async {
+    if (!mounted) return;
+
+    setState(() {
+      _isRazorpayLoading = false;
+      _isProcessingOrder = true;
+    });
+
+    final paymentId = response.paymentId;
+    final serverOrderId = response.orderId; // Razorpay's order_id if you created one via API
+    final signature = response.signature;
+
+    if (paymentId == null) {
+      // print("Critical: Razorpay payment success but no paymentId received. Response: ${response.toString()}");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Payment recorded, but issue saving order. Contact support.')),
+      );
+      _finishPaymentProcess(success: true, orderId: _lastOrderIdAttempted); // Payment was made, but order saving might fail.
+      return;
+    }
+    _lastOrderIdAttempted = paymentId;
+
+
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    final userId = FirebaseAuth.instance.currentUser?.uid ?? 'guest_user';
+
+    List<Map<String, dynamic>> cartItems = cartProvider.cartItems.map((item) {
+      return {
+        'productId': item['id']?.toString() ?? 'unknown_id',
+        'name': item['name']?.toString() ?? 'Unknown Product',
+        'price': (item['price'] is num) ? item['price'] : (double.tryParse(item['price']?.toString() ?? '0.0') ?? 0.0),
+        'quantity': (item['quantity'] is int) ? item['quantity'] : (int.tryParse(item['quantity']?.toString() ?? '1') ?? 1),
+        'imageUrl': item['imageUrl']?.toString() ?? '',
+      };
+    }).toList();
+
+    final newOrder = OrderData(
+      orderId: paymentId, // Using Razorpay paymentId as our primary orderId
+      userId: userId,
+      products: cartItems,
+      subtotal: widget.subtotal,
+      shippingFee: widget.shippingFee,
+      discountApplied: widget.discount,
+      totalAmount: widget.finalAmount, // The actual amount charged by Razorpay
+      timestamp: Timestamp.now(),
+      status: 'Processing',
+      paymentMethod: 'Razorpay',
+      razorpayPaymentId: paymentId,
+      razorpayOrderId: serverOrderId,
+      razorpaySignature: signature,
+    );
+
+    try {
+      await FirebaseFirestore.instance
+          .collection(_kOrdersCollection)
+          .doc(newOrder.orderId)
+          .set(newOrder.toMap());
+
+      await cartProvider.clearCart(); // Clear cart only after successful save
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Payment Successful! Order ID: ${newOrder.orderId}')),
+      );
+      _finishPaymentProcess(success: true, orderId: newOrder.orderId);
+    } catch (e) {
+      // print("Firestore Error: Failed to save order - $e. Payment ID: $paymentId");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Payment successful, but failed to save order. Contact support with Payment ID: $paymentId')),
+      );
+      // Payment was successful, but order saving failed.
+      // Return success true because payment was captured, but also provide paymentId.
+      _finishPaymentProcess(success: true, orderId: paymentId, orderSaveFailed: true);
+    }
+  }
+
   void _handlePaymentError(PaymentFailureResponse response) {
     if (!mounted) return;
-    print("Payment Failed: Code: ${response.code} Message: ${response.message} Metadata: ${response.error.toString()}");
+    // print("Payment Failed: Code: ${response.code} Message: ${response.message} Metadata: ${response.error.toString()}");
 
-    // Try to parse the error message if it's JSON (Razorpay sometimes sends JSON in message)
     String displayMessage = "Payment Failed. Please try again.";
     if (response.message != null) {
-      // You might want to parse response.message if it's a JSON string with more details
-      // For now, keeping it simple.
       displayMessage = "Payment Failed: ${response.message}";
+      // Consider parsing response.error for more detailed user messages if it's structured (e.g., JSON)
     }
-
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(displayMessage)),
     );
-    _finishPaymentProcess();
+    _finishPaymentProcess(success: false);
   }
 
-  /// 💳 External Wallet Used
   void _handleExternalWallet(ExternalWalletResponse response) {
     if (!mounted) return;
-    print("External Wallet: ${response.walletName}");
+    // print("External Wallet: ${response.walletName}");
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Processing via External Wallet: ${response.walletName}")),
     );
-    // Note: Payment success/failure will still come through the respective handlers
-    // You might not need to pop here immediately, wait for success/failure event.
-    // setState(() {
-    //   _isRazorpayLoading = false; // Assuming external wallet takes over UI
-    // });
+    // UI state might not change here, wait for success/error event
   }
 
-  void _finishPaymentProcess() {
+  // <<<--- MODIFIED to return a result --- >>>
+  void _finishPaymentProcess({required bool success, String? orderId, bool orderSaveFailed = false}) {
     if (mounted) {
       setState(() {
         _isProcessingOrder = false;
         _isRazorpayLoading = false;
       });
-      // Only pop if the screen is meant to be temporary after payment attempt
       if (Navigator.canPop(context)) {
-        Navigator.pop(context);
+        Navigator.pop(context, {
+          'success': success,
+          'orderId': orderId,
+          'orderSaveFailed': orderSaveFailed, // Let CartScreen know if Firestore save failed
+        });
       }
     }
   }
 
-
   @override
   void dispose() {
-    _razorpay.clear(); // Important: Clear Razorpay listeners
+    _razorpay.clear();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    String loadingMessage = "Processing Payment...";
-    if (_isProcessingOrder) {
+    String loadingMessage = "Initializing Payment...";
+    if (_isRazorpayLoading && !_isProcessingOrder) {
+      loadingMessage = "Connecting to Payment Gateway...";
+    } else if (_isProcessingOrder) {
       loadingMessage = "Saving your order...";
     } else if (!_isRazorpayLoading && !_isProcessingOrder) {
-      // This state might occur briefly if something went wrong before Razorpay even opened
-      // or if all processing is done and we are about to pop.
-      // Or, if you decide to keep the screen open and show a success/failure message here.
-      // For now, we assume it will pop, so a generic loading is fine.
+      // This state means processing is done, about to pop or error before Razorpay
+      loadingMessage = "Finalizing...";
     }
 
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(loadingMessage), // Dynamic title based on state
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        elevation: 1,
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 20),
-            Text(
-              loadingMessage,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-          ],
+    return PopScope( // Use PopScope for more control over back navigation
+      canPop: !_isProcessingOrder && !_isRazorpayLoading, // Prevent back if processing
+      onPopInvoked: (didPop) {
+        if (didPop) return;
+        if (_isProcessingOrder || _isRazorpayLoading) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Payment processing. Please wait...')),
+          );
+        } else {
+          // If not processing, allow pop but send a failure result
+          _finishPaymentProcess(success: false, orderId: _lastOrderIdAttempted);
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(loadingMessage),
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          elevation: 1,
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 20),
+              Text(
+                loadingMessage,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              if (_isProcessingOrder || _isRazorpayLoading)
+                const Padding(
+                  padding: EdgeInsets.only(top: 15.0),
+                  child: Text(
+                    "Please do not press back or close the app.",
+                    style: TextStyle(color: Colors.grey),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -318,8 +418,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
 // Helper extension for Color to Hex string for Razorpay theme
 extension ColorHex on Color {
   String toHex() {
-    // Ensure `Color` is `material.dart` Color.
-    // Format: #RRGGBB (no alpha for Razorpay theme color)
     return '#${red.toRadixString(16).padLeft(2, '0')}'
         '${green.toRadixString(16).padLeft(2, '0')}'
         '${blue.toRadixString(16).padLeft(2, '0')}';

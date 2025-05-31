@@ -195,6 +195,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     User? user = _auth.currentUser;
     if (user == null) {
       return Scaffold( // This Scaffold is separate, its context is fine for its children
@@ -217,15 +218,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       key: _scaffoldKey, // Assign key to the main Scaffold
       appBar: AppBar(
-        backgroundColor: Colors.teal,
-        title: const Text('My Profile', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-        centerTitle: true,
+        // backgroundColor: Colors.blue.shade50,
+        backgroundColor: theme.colorScheme.surface,
+        foregroundColor: theme.colorScheme.onSurface,
+        title: const Text('Profile', style: TextStyle(color: Colors.black)),
         elevation: 0,
         actions: [
           Builder(
               builder: (actionButtonContext) { // This context is under the Scaffold
                 return IconButton(
-                  icon: const Icon(Icons.logout, color: Colors.white),
+                  icon: const Icon(Icons.logout, color: Colors.black),
                   tooltip: 'Logout',
                   onPressed: () async {
                     // Pass the actionButtonContext (which is under the Scaffold)

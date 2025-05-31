@@ -36,7 +36,16 @@ class _ProductsScreenState extends State<ProductsScreen> {
       appBar: AppBar(
         title: Text(widget.category),
         centerTitle: true,
-        backgroundColor: Colors.teal,
+        backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.teal.shade400, Colors.lightBlue.shade300],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: productStream,
@@ -181,7 +190,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
         icon: const Icon(Icons.shopping_cart),
         label: Text(isInCart ? 'In Cart' : 'Add to Cart'),
         style: ElevatedButton.styleFrom(
-          backgroundColor: isInCart ? Colors.grey : Colors.teal,
+          backgroundColor: isInCart ? Colors.grey : Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 10),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           minimumSize: const Size(double.infinity, 40),

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // For date formatting
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+// Ensure AppOrder is imported from your order_provider.dart
 import '../providers/order_provider.dart';
-import 'order_details_screen.dart'; // Assuming this path is correct
+import 'order_details_screen.dart';
 
 class MyOrdersScreen extends StatefulWidget {
-  final VoidCallback? onRefresh;
+  final VoidCallback? onRefresh; // This is for external refresh, e.g., from HomeScreen
 
   const MyOrdersScreen({super.key, this.onRefresh});
 
@@ -15,21 +16,43 @@ class MyOrdersScreen extends StatefulWidget {
 }
 
 class _MyOrdersScreenState extends State<MyOrdersScreen> {
-  // Helper to format date, if your date is a String, parse it first
-  // If it's already a DateTime object from your provider, you can use it directly
-  String _formatDate(String? dateString) {
-    if (dateString == null) return 'Unknown Date';
-    try {
-      // Assuming dateString is in a format that DateTime.parse can handle
-      // e.g., "YYYY-MM-DD HH:MM:SS" or "YYYY-MM-DD"
-      final dateTime = DateTime.parse(dateString);
-      return DateFormat('dd MMM, yyyy').format(dateTime); // e.g., 23 Jul, 2024
-    } catch (e) {
-      return dateString; // Fallback to original string if parsing fails
+  @override
+  void initState() {
+    super.initState();
+    // Fetch orders when the screen is initialized, but do it *after* the first frame.
+    // This ensures that initState completes and the initial build phase is over
+    // before notifyListeners() might be called by the provider.
+    Future.microtask(() {
+      // Check if mounted in case the widget is disposed before microtask runs
+      if (mounted) {
+        // We set listen: false here because initState should not cause
+        // this widget itself to rebuild based on this initial call.
+        // The Consumer/Provider.of in the build method will handle updates.
+        Provider.of<OrdersProvider>(context, listen: false)
+            .fetchOrders(); // No need for force: true unless specifically desired on init
+        // widget.onRefresh?.call(); // Usually not needed here, onRefresh is for user pull
+      }
+    });
+  }
+
+  Future<void> _fetchOrdersData({bool force = false}) async {
+    if (mounted) {
+      await Provider.of<OrdersProvider>(context, listen: false)
+          .fetchOrders(forceRefresh: force);
+      // widget.onRefresh?.call(); // This is for external refresh, no need to call it from internal fetch logic
     }
   }
 
-  // Helper to get status color
+  // Updated to take DateTime directly
+  String _formatDate(DateTime date) {
+    try {
+      return DateFormat('dd MMM, yyyy').format(date.toLocal());
+    } catch (e) {
+      // Fallback if date is somehow still problematic, though AppOrder should ensure valid DateTime
+      return date.toIso8601String().substring(0, 10);
+    }
+  }
+
   Color _getStatusColor(String status, ThemeData theme) {
     status = status.toLowerCase();
     if (status.contains('delivered') || status.contains('completed')) {
@@ -39,153 +62,112 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
     } else if (status.contains('cancelled') || status.contains('failed')) {
       return theme.colorScheme.error;
     }
-    return theme.colorScheme.onSurface.withOpacity(0.7); // Default
+    return theme.colorScheme.onSurface.withOpacity(0.7); // Default/Pending
   }
 
   @override
   Widget build(BuildContext context) {
-    final ordersProvider = Provider.of<OrdersProvider>(context);
     final theme = Theme.of(context);
+    // Use Consumer to react to provider changes for loading/error states and order list
+    return Consumer<OrdersProvider>(
+      builder: (ctx, ordersProvider, child) {
+        Widget bodyContent;
 
-    return PopScope(
-      canPop: true,
-      onPopInvokedWithResult: (bool didPop, dynamic result) async {
-        if (didPop) {
-          if (mounted) {
-            await Provider.of<OrdersProvider>(context, listen: false)
-                .fetchOrders(context);
-          }
-        }
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text("My Orders"),
-          elevation: 1, // Subtle shadow for the app bar
-          backgroundColor: theme.colorScheme.surface,
-          foregroundColor: theme.colorScheme.onSurface,
-        ),
-        backgroundColor: theme.colorScheme.background, // Match app background
-        body: RefreshIndicator(
-          onRefresh: () async {
-            if (mounted) {
-              await Provider.of<OrdersProvider>(context, listen: false)
-                  .fetchOrders(context);
-              widget.onRefresh?.call();
-            }
-          },
-          child: ordersProvider.isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : ordersProvider.orders.isEmpty
-              ? Center(
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.shopping_bag_outlined,
-                      size: 80, color: Colors.grey[400]),
-                  const SizedBox(height: 20),
-                  Text(
-                    "No Orders Yet!",
-                    style: theme.textTheme.headlineSmall
-                        ?.copyWith(color: Colors.grey[700]),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    "When you place an order, it will appear here.",
-                    style: theme.textTheme.bodyMedium
-                        ?.copyWith(color: Colors.grey[600]),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    "Pull down to refresh",
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: Colors.grey[500]),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-          )
-              : ListView.builder(
+        if (ordersProvider.isLoading && ordersProvider.orders.isEmpty) {
+          bodyContent = const Center(child: CircularProgressIndicator());
+        } else if (ordersProvider.hasError && ordersProvider.orders.isEmpty) {
+          bodyContent = Center( /* ... Your error UI ... */ );
+        } else if (ordersProvider.orders.isEmpty && !ordersProvider.isLoading) {
+          bodyContent = Center( /* ... Your empty orders UI ... */ );
+        } else {
+          bodyContent = ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
             itemCount: ordersProvider.orders.length,
             itemBuilder: (context, index) {
-              var order = ordersProvider.orders[index];
-              String orderId = order['orderId']?.toString() ?? 'N/A';
-              String status = order['status']?.toString() ?? 'Pending';
-              String totalAmount = order['totalAmount']?.toString() ?? '0.00';
-              // Assuming order['orderDate'] is a String that needs parsing
-              // If it's already a DateTime, you can skip DateTime.parse
-              String formattedOrderDate = _formatDate(order['orderDate']?.toString());
-              List<dynamic> products = order['products'] as List<dynamic>? ?? [];
+              // Corrected: order is now AppOrder
+              final AppOrder order = ordersProvider.orders[index];
 
               return OrderCard(
-                orderId: orderId,
-                status: status,
-                totalAmount: totalAmount,
-                orderDate: formattedOrderDate,
-                products: products,
-                statusColor: _getStatusColor(status, theme),
-                // onTap: () {
-                //   // Option 1: Navigate to a detailed order screen
-                //   // Navigator.push(context, MaterialPageRoute(builder: (_) => OrderDetailsScreen(order: order)));
-                //
-                //   // Option 2: Show a dialog with details (simpler for now)
-                //   showDialog(
-                //       context: context,
-                //       builder: (ctx) => AlertDialog(
-                //         title: Text("Order ID: $orderId"),
-                //         content: SingleChildScrollView(
-                //           child: Column(
-                //             crossAxisAlignment:
-                //             CrossAxisAlignment.start,
-                //             mainAxisSize: MainAxisSize.min,
-                //             children: [
-                //               Text("Status: $status"),
-                //               Text("Total: ₹$totalAmount"),
-                //               Text("Date: $formattedOrderDate"),
-                //               const SizedBox(height: 10),
-                //               Text("Items:", style: theme.textTheme.titleSmall),
-                //               ...products.map((prod) {
-                //                 var product = prod as Map<String, dynamic>? ?? {};
-                //                 return Text("- ${product['name'] ?? 'N/A'} (₹${product['price'] ?? 'N/A'})");
-                //               }).toList(),
-                //             ],
-                //           ),
-                //         ),
-                //         actions: [
-                //           TextButton(
-                //               onPressed: () => Navigator.of(ctx).pop(),
-                //               child: const Text("Close"))
-                //         ],
-                //       ));
-                // },
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => OrderDetailsScreen(orderData: order), // Pass the full order map
-                    ),
+                // Access properties using dot notation
+                orderId: order.orderId, // or order.id if you prefer doc ID
+                status: order.status,
+                totalAmount: order.totalAmount.toStringAsFixed(2), // Convert double to formatted string
+                orderDate: _formatDate(order.orderDate), // Pass DateTime object
+                paymentmethod: order.paymentMethod.toString(),
+                products: order.products, // This is List<Map<String, dynamic>>
+                statusColor: _getStatusColor(order.status, theme),
+                onTap: () async {
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (BuildContext context) => const Center(child: CircularProgressIndicator()),
                   );
+
+                  if (mounted) Navigator.pop(context); // Dismiss loading indicator
+
+                  // Use the toMap() method from AppOrder
+
+                  // Ensure OrderDetailsScreen can handle the 'timestamp' field from toMap()
+                  // or convert it to a string if needed:
+                  // orderDataForDetails['orderDateString'] = _formatDate(order.orderDate);
+                  // DEBUG PRINT (Highly Recommended)
+                  // print("--- MyOrdersScreen: Data being passed to OrderDetailsScreen ---");
+
+                  // print("-------------------------------------------------------------");
+
+
+                  if (mounted) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => OrderDetailsScreen(orderId: order.id),
+                      ),
+                    );
+                  }
                 },
               );
             },
+          );
+        }
+
+        return PopScope(
+          canPop: true,
+          onPopInvokedWithResult: (bool didPop, dynamic result) async {
+            if (didPop && mounted) {
+              _fetchOrdersData(force: true); // Refresh on pop
+            }
+          },
+          child: Scaffold(
+            appBar: AppBar(
+              title: const Text("My Orders"),
+              elevation: 1,
+              backgroundColor: theme.colorScheme.surface,
+              foregroundColor: theme.colorScheme.onSurface,
+            ),
+            // backgroundColor: theme.colorScheme.background,
+            body: RefreshIndicator(
+              onRefresh: () => _fetchOrdersData(force: true), // Internal refresh
+              child: bodyContent,
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
 
+// OrderCard remains largely the same, but ensure it uses the data correctly
+// For example, totalAmount is now a String, products is List<Map<String, dynamic>>
+// Ensure productData['imageUrl'] is correctly accessed within OrderCard's product mapping.
 class OrderCard extends StatelessWidget {
   final String orderId;
   final String status;
-  final String totalAmount;
+  final String totalAmount; // Expecting a formatted string
   final String orderDate;
-  final List<dynamic> products;
+  final String paymentmethod;// Expecting a formatted string
+  // This was List<dynamic>, ensure it's List<Map<String, dynamic>>
+  // if AppOrder.products is List<Map<String, dynamic>>
+  final List<Map<String, dynamic>> products;
   final Color statusColor;
   final VoidCallback onTap;
 
@@ -195,6 +177,7 @@ class OrderCard extends StatelessWidget {
     required this.status,
     required this.totalAmount,
     required this.orderDate,
+    required this.paymentmethod,
     required this.products,
     required this.statusColor,
     required this.onTap,
@@ -203,7 +186,6 @@ class OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    // Show a limited number of product images as previews
     const int maxPreviewImages = 3;
     final previewProducts = products.take(maxPreviewImages).toList();
 
@@ -211,9 +193,9 @@ class OrderCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 8.0),
       elevation: 2.0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-      clipBehavior: Clip.antiAlias, // Ensures content respects card shape
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: onTap, // Make the whole card tappable
+        onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -222,11 +204,14 @@ class OrderCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    "Order #$orderId",
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.onSurface,
+                  Flexible(
+                    child: Text(
+                      "Order #$orderId",
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   Container(
@@ -248,17 +233,16 @@ class OrderCard extends StatelessWidget {
               const SizedBox(height: 8.0),
               Text(
                 "Placed on: $orderDate",
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 12.0),
               if (previewProducts.isNotEmpty) ...[
                 SizedBox(
-                  height: 60, // Adjust height as needed
+                  height: 60,
                   child: Row(
                     children: previewProducts.map((productData) {
-                      var product = productData as Map<String, dynamic>? ?? {};
-                      String? imageUrl = product['imageUrl']?.toString();
+                      // productData is already Map<String, dynamic> from AppOrder.products
+                      String? imageUrl = productData['imageUrl']?.toString();
                       return Padding(
                         padding: const EdgeInsets.only(right: 8.0),
                         child: ClipRRect(
@@ -266,25 +250,10 @@ class OrderCard extends StatelessWidget {
                           child: (imageUrl != null && imageUrl.isNotEmpty)
                               ? Image.network(
                             imageUrl,
-                            width: 60,
-                            height: 60,
-                            fit: BoxFit.cover,
-                            errorBuilder: (ctx, err, st) => Container(
-                              width: 60,
-                              height: 60,
-                              color: Colors.grey[200],
-                              child: Icon(Icons.broken_image, color: Colors.grey[400]),
-                            ),
+                            width: 60, height: 60, fit: BoxFit.cover,
+                            errorBuilder: (ctx, err, st) => Container(width: 60, height: 60, color: Colors.grey[200], child: Icon(Icons.broken_image, color: Colors.grey[400])),
                           )
-                              : Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              color: Colors.grey[200],
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
-                            child: Icon(Icons.image_not_supported, color: Colors.grey[400]),
-                          ),
+                              : Container(width: 60, height: 60, decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(8.0)), child: Icon(Icons.image_not_supported, color: Colors.grey[400])),
                         ),
                       );
                     }).toList(),
@@ -295,8 +264,7 @@ class OrderCard extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 4.0),
                     child: Text(
                       "+${products.length - maxPreviewImages} more item(s)",
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                     ),
                   ),
                 const SizedBox(height: 12.0),
@@ -306,26 +274,17 @@ class OrderCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  Text("Total Amount", style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                   Text(
-                    "Total Amount",
-                    style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                  ),
-                  Text(
-                    "₹$totalAmount",
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.primary,
-                    ),
+                    "₹$totalAmount", // totalAmount is already a formatted string
+                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
                   ),
                 ],
               ),
               const SizedBox(height: 8.0),
               Align(
                 alignment: Alignment.centerRight,
-                child: Text(
-                  "Tap to view details",
-                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.secondary),
-                ),
+                child: Text("Tap to view details", style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.secondary)),
               )
             ],
           ),

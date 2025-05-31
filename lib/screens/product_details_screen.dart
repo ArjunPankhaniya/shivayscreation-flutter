@@ -30,7 +30,16 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       appBar: AppBar(
         title: Text(widget.product['name']?.toString() ?? 'Unnamed Product'),
         centerTitle: true,
-        backgroundColor: Colors.teal,
+        // backgroundColor: Colors.teal,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.teal.shade400, Colors.lightBlue.shade300],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
       ),
       body: Consumer<CartProvider>(
         builder: (context, cartProvider, child) {
@@ -71,7 +80,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                     icon: Icon(isInCart ? Icons.check_circle : Icons.shopping_cart),
                     label: Text(isInCart ? 'Added to Cart' : 'Add to Cart'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isInCart ? Colors.grey : Colors.teal,
+                      backgroundColor: isInCart ? Colors.grey : Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       minimumSize: const Size(double.infinity, 50),
@@ -101,7 +110,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.teal.shade50,
+        color: Colors.blue.shade50,
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(

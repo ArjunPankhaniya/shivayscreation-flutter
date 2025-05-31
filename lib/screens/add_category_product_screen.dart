@@ -12,8 +12,7 @@ class AddCategoryProductScreen extends StatefulWidget {
   const AddCategoryProductScreen({super.key});
 
   @override
-  _AddCategoryProductScreenState createState() =>
-      _AddCategoryProductScreenState();
+  _AddCategoryProductScreenState createState() => _AddCategoryProductScreenState();
 }
 
 class _AddCategoryProductScreenState extends State<AddCategoryProductScreen> {
@@ -187,9 +186,9 @@ class _AddCategoryProductScreenState extends State<AddCategoryProductScreen> {
     if (imageUrl == null || imageUrl.isEmpty) return;
     try {
       await FirebaseStorage.instance.refFromURL(imageUrl).delete();
-      print("Successfully deleted old image: $imageUrl");
+      // print("Successfully deleted old image: $imageUrl");
     } catch (e) {
-      print("Failed to delete old image ($imageUrl): $e");
+      // print("Failed to delete old image ($imageUrl): $e");
       // Optionally show a non-critical error or just log it
     }
   }

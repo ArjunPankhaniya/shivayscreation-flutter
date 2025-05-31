@@ -39,9 +39,9 @@ class _LoginScreenState extends State<LoginScreen> {
       await _firestore.collection(usersCollection).doc(user.uid).update({
         'emailVerified': isVerified,
       });
-      print("Firestore emailVerified status updated for ${user.uid}");
+      // print("Firestore emailVerified status updated for ${user.uid}");
     } catch (e) {
-      print("Error updating emailVerified status in Firestore: $e");
+      // print("Error updating emailVerified status in Firestore: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Could not update verification status: ${e.toString()}')),
@@ -79,7 +79,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } on FirebaseAuthException catch (e) {
-      print("Error resending verification email: ${e.code} - ${e.message}");
+      // print("Error resending verification email: ${e.code} - ${e.message}");
       String friendlyMessage = "Could not resend verification email.";
       if (e.code == 'too-many-requests') {
         friendlyMessage = "Too many requests. Please wait a bit before trying to resend.";
@@ -90,7 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } catch (e) {
-      print("Error resending verification email: $e");
+      // print("Error resending verification email: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Could not resend verification email: ${e.toString()}')),
@@ -148,7 +148,7 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       }
     } catch (e) {
-      print("Error during manual email verification check: $e");
+      // print("Error during manual email verification check: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error checking verification: ${e.toString()}')),
@@ -279,7 +279,7 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       } else {
         errorMessage = e.message ?? "An unknown authentication error occurred.";
-        print('Firebase Auth Error Code: ${e.code}, Message: ${e.message}');
+        // print('Firebase Auth Error Code: ${e.code}, Message: ${e.message}');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage)));
           setState(() => _isLoading = false);
@@ -287,7 +287,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      print("Login error: $e");
+      // print("Login error: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('An unexpected error occurred. Please try again.')),
