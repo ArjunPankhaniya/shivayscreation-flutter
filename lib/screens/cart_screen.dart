@@ -72,7 +72,7 @@ class _CartScreenState extends State<CartScreen> {
           ElevatedButton(
             onPressed: _navigateToCategoriesScreen, // ✅ Fix navigation
             style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
-            child: const Text('Explore Products', style: TextStyle(fontSize: 16)),
+            child: const Text('Explore Products', style: TextStyle(fontSize: 16, color: Colors.white)),
           )
       ],
       ),

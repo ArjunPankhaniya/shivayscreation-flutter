@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 class HelpScreen extends StatelessWidget {
   const HelpScreen({super.key});
 
+
   void _launchEmail() async {
     final Uri emailUri = Uri.parse("mailto:support@shivayscreation.com?subject=Help Request");
     if (await canLaunchUrl(emailUri)) {

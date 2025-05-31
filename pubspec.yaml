@@ -17,6 +17,8 @@ dependencies:
   carousel_slider: ^5.0.0
   flutter_image_compress: ^2.4.0
   url_launcher: ^6.3.1
+  flutter_dotenv: ^5.1.0
+
 
   flutter_staggered_animations: ^1.1.1
   badges: ^3.1.2
@@ -62,6 +64,7 @@ flutter:
     - assets/images/
     - assets/sounds/
     - assets/images/placeholder.png
+    - .env
 
 
   # Other configurations for assets and fonts (if needed)

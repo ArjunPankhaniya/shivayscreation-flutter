@@ -17,6 +17,9 @@ flutter_*.log
 
 # dotenv environment variables file
 .env*
+.env
+*.env
+local.properties
 
 # Firebase Configuration Files (DO NOT COMMIT)
 android/app/google-services.json
