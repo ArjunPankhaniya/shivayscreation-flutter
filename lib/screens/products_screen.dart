@@ -187,10 +187,19 @@ class _ProductsScreenState extends State<ProductsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: ElevatedButton.icon(
         onPressed: isInCart ? null : () => cartProvider.addToCart(product),
-        icon: const Icon(Icons.shopping_cart),
-        label: Text(isInCart ? 'In Cart' : 'Add to Cart'),
+        // icon: const Icon(Icons.shopping_cart),
+        icon: const Icon( Icons.shopping_cart,
+          color: Colors.white, // Keep default icon color if in cart, otherwise white
+        ),
+        label: Text(
+          isInCart ? 'In Cart' : 'Add to Cart',
+          style: TextStyle(
+            color: isInCart ? null : Colors.white, // Keep default text color if in cart, otherwise white
+          ),
+        ),
+        // label: Text(isInCart ? 'In Cart' : 'Add to Cart'),
         style: ElevatedButton.styleFrom(
-          backgroundColor: isInCart ? Colors.grey : Colors.white,
+          backgroundColor: isInCart ? Colors.grey : Colors.blue,
           padding: const EdgeInsets.symmetric(vertical: 10),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           minimumSize: const Size(double.infinity, 40),

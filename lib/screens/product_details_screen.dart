@@ -77,10 +77,20 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                         : () async {
                       await cartProvider.addToCart(widget.product);
                     },
-                    icon: Icon(isInCart ? Icons.check_circle : Icons.shopping_cart),
-                    label: Text(isInCart ? 'Added to Cart' : 'Add to Cart'),
+                    // icon: Icon(isInCart ? Icons.check_circle : Icons.shopping_cart,color: isInCart ? null : Colors.grey,),
+                    // label: Text(isInCart ? 'Added to Cart' : 'Add to Cart'),
+                    icon: Icon(
+                      isInCart ? Icons.check_circle : Icons.shopping_cart,
+                      color: isInCart ? null : Colors.white, // Keep default icon color if in cart, otherwise white
+                    ),
+                    label: Text(
+                      isInCart ? 'Added to Cart' : 'Add to Cart',
+                      style: TextStyle(
+                        color: isInCart ? null : Colors.white, // Keep default text color if in cart, otherwise white
+                      ),
+                    ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isInCart ? Colors.grey : Colors.white,
+                      backgroundColor: isInCart ? Colors.grey : Colors.blue,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       minimumSize: const Size(double.infinity, 50),

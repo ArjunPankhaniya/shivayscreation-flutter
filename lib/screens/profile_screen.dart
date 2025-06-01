@@ -111,7 +111,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required String title,
     String? subtitle,
     VoidCallback? onTap,
-    Color iconColor = Colors.teal,
+    Color iconColor = Colors.blue,
     Widget? trailing,
   }) {
     return Card(
@@ -320,7 +320,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               children: [
                                 CircleAvatar(
                                   radius: 55,
-                                  backgroundColor: Colors.teal,
+                                  backgroundColor: Colors.blue.shade200,
                                   backgroundImage: _profileImage != null
                                       ? FileImage(_profileImage!)
                                       : (userData['imageUrl'] != null && (userData['imageUrl'] as String).isNotEmpty
@@ -351,7 +351,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(height: 12),
                           Text(
                             userData['name'] ?? 'User Name', // Ensure this matches your Firestore field
-                            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.teal),
+                            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.blue),
                           ),
                           const SizedBox(height: 4),
                           Text(
@@ -365,8 +365,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           const SizedBox(height: 10),
                           ElevatedButton.icon(
-                            icon: const Icon(Icons.edit_outlined, size: 18),
-                            label: const Text('Edit Profile Details'),
+                            icon:  Icon(color: Colors.white, Icons.edit_outlined, size: 18),
+                            label:  Text('Edit Profile Details'),
                             onPressed: () {
                               Navigator.push(
                                 context, // This context should be fine for navigation
@@ -376,7 +376,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               );
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.teal.shade300,
+                              backgroundColor: Colors.lightBlueAccent,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                               textStyle: const TextStyle(fontSize: 14),
@@ -419,22 +419,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         }
                     ),
 
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-                      child: Divider(),
-                    ),
+                    // const Padding(
+                    //   padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+                    //   child: Divider(),
+                    // ),
 
                     _buildProfileOption(
                         icon: Icons.settings_outlined,
                         title: "Settings",
-                        iconColor: Colors.blueGrey.shade700,
+                        // iconColor: Colors.blueGrey.shade700,
                         onTap: () {
                           Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen()));
                         }),
                     _buildProfileOption(
                         icon: Icons.help_outline,
                         title: "Help & Support",
-                        iconColor: Colors.blueGrey.shade700,
+                        // iconColor: Colors.blueGrey.shade700,
                         onTap: () {
                           Navigator.push(context, MaterialPageRoute(builder: (context) => const HelpScreen()));
                         }),

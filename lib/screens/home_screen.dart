@@ -329,7 +329,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: Text(
                                 '${cartProvider.cartItems.length}',
                                 style: const TextStyle(
-                                    color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold),
+                                    color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                                 textAlign: TextAlign.center,
                               ),
                             ),
@@ -380,7 +380,7 @@ class _UserHeader extends StatelessWidget {
         child: userImageUrl.isEmpty
             ? Text(
           userName.isNotEmpty ? userName[0].toUpperCase() : "?",
-          style: const TextStyle(fontSize: 36, color: Colors.teal),
+          style: const TextStyle(fontSize: 36, color: Colors.blue),
         )
             : ClipOval(
           child: CachedNetworkImage(
