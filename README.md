@@ -63,26 +63,36 @@ This is the **Flutter-based successor** to the original **Java-based Android app
 
 
 
+
+
+
 ## 📸 **Screenshots & Demo**  
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/ffd3c126-7ca5-49e5-b588-f0122e0dffb7" width="200">
-  <img src="https://github.com/user-attachments/assets/d7bb48f6-0a20-4867-9708-c697ac6adff3" width="200">
-  <img src="https://github.com/user-attachments/assets/64e79d5e-898c-4491-ab45-471ee3ef4473" width="200">
+  <img src="https://github.com/user-attachments/assets/d5dcc632-e443-4a71-8f09-a4854095621d" width="200">
+  <img src="https://github.com/user-attachments/assets/5f22135d-d89c-4561-b50a-0568402b2e95" width="200">
+  <img src="https://github.com/user-attachments/assets/949e3b81-bfa8-4186-b944-f8b95512aaeb" width="200">
 </p>
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/8d156c59-c84b-4d3d-81b2-fa1c7f42232e" width="200">
-  <img src="https://github.com/user-attachments/assets/1d4478ac-5c98-4006-8684-2f9dcfd38baf" width="200">
-  <img src="https://github.com/user-attachments/assets/3b90bf2a-82c0-4e33-8640-bc1ab6fd02a2" width="200">
+  <img src="https://github.com/user-attachments/assets/be080656-f9f2-4169-9d33-9c653f33a26c" width="200">
+  <img src="https://github.com/user-attachments/assets/d5989ff5-5694-4ee5-ba11-d1257c092294" width="200">
+  <img src="https://github.com/user-attachments/assets/23b20f7b-8d80-4b05-9374-d020223cd28e" width="200">
+  
 </p>
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/8dbe953d-973c-44a0-af7a-8caed6539989" width="200">
-  <img src="https://github.com/user-attachments/assets/e3f9433a-1cf5-44f3-8ea1-c9b3089ebd4b" width="200">
-  <img src="https://github.com/user-attachments/assets/125a4c68-5cd5-414e-8c5e-9c492939e309" width="200">
+  <img src="https://github.com/user-attachments/assets/5f7a2a80-a15b-44f0-963f-7dcc63b77580" width="200">
+  <img src="https://github.com/user-attachments/assets/2ba2cb55-2f1a-4aed-aeac-b60c60aeeaae" width="200">
+  <img src="https://github.com/user-attachments/assets/a7662ccf-d3ca-4cfd-b95a-0bcdb909dc45" width="200">
+  
 </p>
 
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/53f699c4-373d-4637-aacc-98d0accb421d" width="200">
+  <img src="https://github.com/user-attachments/assets/587abf5a-67a9-46e8-aa49-d98ed197c0ec" width="200">
+  <img src="https://github.com/user-attachments/assets/644d338d-e95b-4de8-b8f9-38779c5cf74d" width="200">
+</p>
 
 ---
 
